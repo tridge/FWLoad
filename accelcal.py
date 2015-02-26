@@ -10,50 +10,8 @@ from util import *
 import rotate
 from pymavlink import mavutil
 import expect_callback
+import test_sensors
 
-
-def check_accel_cal(ref, refmav, test, testmav):
-    '''check accel cal'''
-
-    for idx in range(NUM_ACCELS):
-        if idx == 0:
-            n = ''
-        else:
-            n = '%u' % (idx+1)
-        for axis in ['X', 'Y', 'Z']:
-            pname = 'INS_ACC%sOFFS_%s' % (n, axis)
-            test.send('param fetch %s\n' % pname)
-            test.expect('Requested parameter %s' % pname)
-            test.expect('%s = (-?\d+\.\d+)\r\n' % pname)
-            ofs = float(test.match.group(1))
-            if abs(ofs) < 0.000001:
-                raise("%s is zero - accel %u not calibrated (offset)" % (pname, idx))
-            pname = 'INS_ACC%sSCAL_%s' % (n, axis)
-            test.send('param fetch %s\n' % pname)
-            test.expect('Requested parameter %s' % pname)
-            test.expect('%s = (-?\d+\.\d+)\r\n' % pname)
-            ofs = float(test.match.group(1))
-            if abs(ofs-1.0) < 0.000001:
-                failure("%s is zero - accel %u not calibrated (scale)" % (pname, idx))
-        print("Accel cal %u OK" % (idx+1))
-
-def check_gyro_cal(ref, refmav, test, testmav):
-    '''check gyro cal'''
-
-    for idx in range(NUM_GYROS):
-        if idx == 0:
-            n = ''
-        else:
-            n = '%u' % (idx+1)
-        for axis in ['X', 'Y', 'Z']:
-            pname = 'INS_GYR%sOFFS_%s' % (n, axis)
-            test.send('param fetch %s\n' % pname)
-            test.expect('Requested parameter %s' % pname)
-            test.expect('%s = (-?\d+\.\d+)\r\n' % pname)
-            ofs = float(test.match.group(1))
-            if abs(ofs) < 0.000001:
-                raise("%s is zero - gyro %u not calibrated (offset)" % (pname, idx))
-        print("Gyro cal %u OK" % (idx+1))
 
 def accel_calibrate_run(ref, refmav, test, testmav):
     '''run accelcal'''
@@ -108,9 +66,12 @@ def accel_calibrate():
     expect_callback.expect_callback_mav([refmav, testmav])
 
     accel_calibrate_run(ref, refmav, test, testmav)
-    check_accel_cal(ref, refmav, test, testmav)
-    check_gyro_cal(ref, refmav, test, testmav)
+    test_sensors.check_accel_cal(ref, refmav, test, testmav)
+    test_sensors.check_gyro_cal(ref, refmav, test, testmav)
     print("Accel calibration complete")
+
+    test_sensors.check_baro(ref, refmav, test, testmav)
+    test_sensors.check_mag(ref, refmav, test, testmav)
 
 if __name__ == '__main__':
     accel_calibrate()

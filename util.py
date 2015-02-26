@@ -49,3 +49,15 @@ def failure(msg):
     print(msg)
     sys.exit(1)
     
+
+def wait_field(refmav, msg_type, field):
+    '''wait for a field value'''
+    msg = None
+    # get the latest available msg
+    while True:
+        msg2 = refmav.recv_match(type=msg_type, blocking=(msg==None))
+        if msg2 is None:
+            break
+        msg = msg2
+    return getattr(msg, field)
+

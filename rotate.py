@@ -6,17 +6,7 @@ run an accelcal on the test jig
 import pexpect, sys, time
 from math import *
 from config import *
-
-def wait_field(refmav, msg_type, field):
-    '''wait for a field value'''
-    msg = None
-    # get the latest available msg
-    while True:
-        msg2 = refmav.recv_match(type=msg_type, blocking=(msg==None))
-        if msg2 is None:
-            break
-        msg = msg2
-    return getattr(msg, field)
+import util
 
 def set_rotation(ref, refmav, rotation, wait=20):
     '''set servo rotation'''
@@ -28,7 +18,7 @@ def set_rotation(ref, refmav, rotation, wait=20):
     ref.send("servo set 6 %u\n" % s6)
     ref.expect("COMMAND_ACK {command : 183, result : 0}")
     time.sleep(2)
-    wait_field(refmav, 'ATTITUDE', 'roll')
+    util.wait_field(refmav, 'ATTITUDE', 'roll')
     attitude = refmav.recv_match(type='ATTITUDE', condition='abs(degrees(ATTITUDE.rollspeed))<0.1 and abs(degrees(ATTITUDE.pitchspeed))<0.1 and abs(degrees(ATTITUDE.yawspeed))<0.1', blocking=True)
     print("Orientation %s: Roll=%.1f Pitch=%.1f RollSpeed=%.1f PitchSpeed=%.1f" % (
         rotation,

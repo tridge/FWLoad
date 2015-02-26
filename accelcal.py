@@ -39,8 +39,10 @@ def accel_calibrate():
     testlog = StringIO()
     try:
         print("CONNECTING TO REFERENCE BOARD")
-        ref  = pexpect.spawn("mavproxy.py --master %s --out 59.167.251.244:15550 --out 127.0.0.1:14550 --aircraft RefBoard" % USB_DEV_REFERENCE,
-                             logfile=reflog, timeout=10)
+        cmd = "mavproxy.py --master %s --out 127.0.0.1:14550 --aircraft RefBoard" % USB_DEV_REFERENCE
+        if REMOTE_MONITOR:
+            cmd += " %s" % REMOTE_MONITOR
+        ref  = pexpect.spawn(cmd, logfile=reflog, timeout=10)
         ref.expect(['Received [0-9]+ parameters', 'MANUAL>'])
         ref.expect(['Received [0-9]+ parameters', 'MANUAL>'])
 
@@ -52,8 +54,10 @@ def accel_calibrate():
     
     try:
         print("CONNECTING TO TEST BOARD")
-        test = pexpect.spawn("mavproxy.py --master %s --out 127.0.0.1:14551 --aircraft TestBoard" % USB_DEV_TEST,
-                             logfile=testlog, timeout=10)
+        cmd = "mavproxy.py --master %s --out 127.0.0.1:14551 --aircraft TestBoard" % USB_DEV_TEST
+        if REMOTE_MONITOR2:
+            cmd += " %s" % REMOTE_MONITOR2
+        test = pexpect.spawn(cmd, logfile=testlog, timeout=10)
         test.expect(['Received [0-9]+ parameters', 'RTL>'])
         test.expect(['Received [0-9]+ parameters', 'RTL>'])
         
@@ -64,6 +68,10 @@ def accel_calibrate():
         show_error('Connecting to test board', ex, testlog)
 
     expect_callback.expect_callback_mav([refmav, testmav])
+
+    # get all parms again so they are in the log
+    test.send("param fetch\n")
+    test.expect('Received [0-9]+ parameters')
 
     accel_calibrate_run(ref, refmav, test, testmav)
     test_sensors.check_accel_cal(ref, refmav, test, testmav)

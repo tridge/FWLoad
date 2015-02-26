@@ -16,17 +16,11 @@ def check_accel_cal(ref, refmav, test, testmav):
             n = '%u' % (idx+1)
         for axis in ['X', 'Y', 'Z']:
             pname = 'INS_ACC%sOFFS_%s' % (n, axis)
-            test.send('param fetch %s\n' % pname)
-            test.expect('Requested parameter %s' % pname)
-            test.expect('%s = (-?\d+\.\d+)\r\n' % pname)
-            ofs = float(test.match.group(1))
+            ofs = util.param_value(test, pname)
             if abs(ofs) < 0.000001:
                 raise("%s is zero - accel %u not calibrated (offset)" % (pname, idx))
             pname = 'INS_ACC%sSCAL_%s' % (n, axis)
-            test.send('param fetch %s\n' % pname)
-            test.expect('Requested parameter %s' % pname)
-            test.expect('%s = (-?\d+\.\d+)\r\n' % pname)
-            ofs = float(test.match.group(1))
+            ofs = util.param_value(test, pname)
             if abs(ofs-1.0) < 0.000001:
                 failure("%s is zero - accel %u not calibrated (scale)" % (pname, idx))
         print("Accel cal %u OK" % (idx+1))
@@ -41,9 +35,7 @@ def check_gyro_cal(ref, refmav, test, testmav):
             n = '%u' % (idx+1)
         for axis in ['X', 'Y', 'Z']:
             pname = 'INS_GYR%sOFFS_%s' % (n, axis)
-            test.send('param fetch %s\n' % pname)
-            test.expect('Requested parameter %s' % pname)
-            test.expect('%s = (-?\d+\.\d+)\r\n' % pname)
+            ofs = util.param_value(test, pname)
             ofs = float(test.match.group(1))
             if abs(ofs) < 0.000001:
                 raise("%s is zero - gyro %u not calibrated (offset)" % (pname, idx))

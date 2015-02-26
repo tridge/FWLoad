@@ -28,6 +28,9 @@ FTDI_POWER="/dev/serial/by-id/usb-FTDI_TTL232R_FTFX6YMW-if00-port0"
 NUM_ACCELS=3
 NUM_GYROS=3
 
+REMOTE_MONITOR="59.167.251.244:15550"
+REMOTE_MONITOR2="59.167.251.244:15551"
+
 # servo positions for different orientations of boards
 ROTATIONS = {
     'level' : (1260, 1687),

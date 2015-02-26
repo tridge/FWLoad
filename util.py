@@ -4,6 +4,7 @@ from config import *
 
 def show_error(test, ex, logstr):
     '''display an error then exit'''
+    logstr.seek(0)
     lines = logstr.readlines()
     n = 10
     if len(lines) < n:
@@ -26,18 +27,18 @@ def wait_devices(devices, timeout=10):
                 missing.append(dev)
         if all_exist:
             return True
-        time.sleep(0.25)
+        time.sleep(0.1)
     print("Missing devices: %s" % missing)
     return False
 
-def power_wait_devices():
+def power_wait_devices(devices):
     '''wait for all needed JTAG devices'''
     retries = 5
     while retries > 0:
         retries -= 1
         power_control.power_cycle()
         print("Waiting for power up")
-        if wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
+        if wait_devices(devices):
             time.sleep(1)
             return True
     print("Failed to power up devices")
@@ -61,3 +62,8 @@ def wait_field(refmav, msg_type, field):
         msg = msg2
     return getattr(msg, field)
 
+def param_value(test, pname):
+    '''get a param value given a mavproxy connection'''
+    test.send('param show %s\n' % pname)
+    test.expect('%s\s+(-?\d+\.\d+)\r\n' % pname)
+    return float(test.match.group(1))

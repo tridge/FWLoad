@@ -11,9 +11,8 @@ import util
 import sys
 from config import *
 
-util.power_wait_devices()
-jtag.load_all_firmwares()
-util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE, FMU_DEBUG])
+util.power_wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG])
+jtag.load_all_firmwares(retries=3)
 time.sleep(1)
 accelcal.accel_calibrate()
 print("Factory install complete")

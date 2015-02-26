@@ -3,7 +3,7 @@
 load firmwares over JTAG with gdb under pexpect
 '''
 
-import pexpect, sys
+import pexpect, sys, util
 from StringIO import StringIO
 from config import *
 
@@ -40,14 +40,31 @@ def load_firmware(device, firmware, mcu_id, run=False):
     except Exceptions as ex:
         show_error('Loading firmware %s' % firmware, ex, log)        
 
-def load_all_firmwares():
+def load_all_firmwares(retries=3):
     '''load 4 firmwares'''
-    load_firmware(IO_JTAG, FW_IO, CPUID_IO)
-    load_firmware(IO_JTAG, BL_IO, CPUID_IO, run=True)
+    while retries > 0:
+        retries -= 1
+        if not util.wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG]):
+            if retries == 1:
+                print("RETRIES=1 - POWER CYCLING")
+                util.power_wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG])
+            continue
 
-    load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)
-    load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU, run=True)
+        load_firmware(IO_JTAG, FW_IO, CPUID_IO)
+        load_firmware(IO_JTAG, BL_IO, CPUID_IO, run=True)
+
+        load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)
+        load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU, run=True)
+
+        if util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
+            break
+        if retries > 0:
+            print("RETRIES %u - TRYING AGAIN" % retries)
+    if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
+        util.failed("LOADING FIRMWARE")
+
     print("All firmwares loaded OK")
+
 
 if __name__ == '__main__':
     load_all_firmwares()

@@ -18,11 +18,11 @@ def check_accel_cal(ref, refmav, test, testmav):
             pname = 'INS_ACC%sOFFS_%s' % (n, axis)
             ofs = util.param_value(test, pname)
             if abs(ofs) < 0.000001:
-                raise("%s is zero - accel %u not calibrated (offset)" % (pname, idx))
+                util.failure("%s is zero - accel %u not calibrated (offset)" % (pname, idx))
             pname = 'INS_ACC%sSCAL_%s' % (n, axis)
             ofs = util.param_value(test, pname)
             if abs(ofs-1.0) < 0.000001:
-                failure("%s is zero - accel %u not calibrated (scale)" % (pname, idx))
+                util.failure("%s is zero - accel %u not calibrated (scale)" % (pname, idx))
         print("Accel cal %u OK" % (idx+1))
 
 def check_gyro_cal(ref, refmav, test, testmav):
@@ -38,7 +38,7 @@ def check_gyro_cal(ref, refmav, test, testmav):
             ofs = util.param_value(test, pname)
             ofs = float(test.match.group(1))
             if abs(ofs) < 0.000001:
-                raise("%s is zero - gyro %u not calibrated (offset)" % (pname, idx))
+                util.failure("%s is zero - gyro %u not calibrated (offset)" % (pname, idx))
         print("Gyro cal %u OK" % (idx+1))
 
 

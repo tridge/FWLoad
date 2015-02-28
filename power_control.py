@@ -18,5 +18,3 @@ def power_cycle(down_time=2):
     
 if __name__ == '__main__':
     power_cycle()
-
-

@@ -2,6 +2,8 @@
 config for factory test rig
 '''
 
+from math import *
+
 GDB="arm-none-eabi-gdb"
 FMU_BMAGIC_SERIAL="B5DEADF0"
 IO_BMAGIC_SERIAL="B5DFADF1"
@@ -28,15 +30,50 @@ FTDI_POWER="/dev/serial/by-id/usb-FTDI_TTL232R_FTFX6YMW-if00-port0"
 NUM_ACCELS=3
 NUM_GYROS=3
 
-REMOTE_MONITOR="59.167.251.244:15550"
-REMOTE_MONITOR2="59.167.251.244:15551"
+REMOTE_MONITOR="10.26.1.200:16550"
+REMOTE_MONITOR2="10.26.1.200:16551"
 
-# servo positions for different orientations of boards
+ROTATION_LEVEL_TOLERANCE = 2.0
+ROTATION_TOLERANCE = 5.0
+
+GYRO_TOLERANCE = radians(0.2)
+
+# what channels control pitch and yaw in body frame
+
+# yaw in body frame
+YAW_CHANNEL = 5
+# +100 change == -20 degrees
+YAW_SCALE = -22.0 / 100
+
+
+
+
+# pitch in earth frame
+PITCH_CHANNEL = 6
+# +100 change == -34 degrees
+PITCH_SCALE = -34.0/100
+
+
+
+
+# servo positions for different orientations of boards in the test jig
+# the columns are:
+#    servo5 PWM
+#    servo6 PWM
+#    expected roll
+#    expected pitch
 ROTATIONS = {
-    'level' : (1260, 1687),
-    'right' : (855,  1420),
-    'left'  : (1660, 1420),
-    'down'  : (1260, 1420),
-    'up'    : (1274, 1950),
-    'back'  : (1255, 1180)
+    'level' : (1272, 1687,    0,    0),
+    'right' : (855,  1420,   90,    0),
+    'left'  : (1660, 1420,  -90,    0),
+    'up'    : (1260, 1420,  None,  90),
+    'down'  : (1274, 1950,  None, -90),
+    'back'  : (1255, 1180,  180,    0)
     }
+
+'''
+level: yaw:5 pitch:6
+
+
+
+'''

@@ -12,8 +12,8 @@ def load_firmware(device, firmware, mcu_id, run=False):
     cmd = "%s %s" % (GDB, firmware)
     print("Loading firmware %s" % firmware)
     log = StringIO()
-    gdb = pexpect.spawn(cmd, logfile=log, timeout=10)
     try:
+        gdb = pexpect.spawn(cmd, logfile=log, timeout=10)
         gdb.expect("Reading symbols from")
         gdb.expect("done")
         gdb.expect("(gdb)")
@@ -38,10 +38,10 @@ def load_firmware(device, firmware, mcu_id, run=False):
             gdb.expect("Start it from the beginning?")
             gdb.send("y\n")
     except Exceptions as ex:
-        show_error('Loading firmware %s' % firmware, ex, log)        
+        util.show_error('Loading firmware %s' % firmware, ex, log)        
 
 def load_all_firmwares(retries=3):
-    '''load 4 firmwares'''
+    '''load 4 firmwares. Return True on success, False on failure'''
     while retries > 0:
         retries -= 1
         if not util.wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG]):
@@ -50,20 +50,25 @@ def load_all_firmwares(retries=3):
                 util.power_wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG])
             continue
 
-        load_firmware(IO_JTAG, FW_IO, CPUID_IO)
-        load_firmware(IO_JTAG, BL_IO, CPUID_IO, run=True)
+        try:
+            load_firmware(IO_JTAG, FW_IO, CPUID_IO)
+            load_firmware(IO_JTAG, BL_IO, CPUID_IO, run=True)
 
-        load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)
-        load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU, run=True)
+            load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)
+            load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU, run=True)
+        except Exception as ex:
+            continue
 
         if util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
             break
         if retries > 0:
             print("RETRIES %u - TRYING AGAIN" % retries)
     if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
-        util.failed("LOADING FIRMWARE")
+        print("Failed to find USB devices")
+        return False
 
     print("All firmwares loaded OK")
+    return True
 
 
 if __name__ == '__main__':

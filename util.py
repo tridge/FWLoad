@@ -1,18 +1,30 @@
 import sys, time, os
 import power_control
 from config import *
+from pymavlink import mavutil
 
-def show_error(test, ex, logstr):
-    '''display an error then exit'''
+class FirmwareLoadError(Exception):
+    '''firmload exception class'''
+    def __init__(self, msg):
+        Exception.__init__(self, msg)
+        self.message = msg
+
+def show_tail(logstr):
+    '''show last lines of a log'''
+    ofs = logstr.tell()
     logstr.seek(0)
     lines = logstr.readlines()
-    n = 10
+    n = 20
     if len(lines) < n:
         n = len(lines)
     for i in range(n):
-        print(lines[len(lines)-10+i])
-    print("FAILED: %s" % test)
-    sys.exit(1)
+        print(lines[len(lines)-n+i].rstrip())
+    logstr.seek(ofs)
+
+def show_error(test, ex, logstr):
+    '''display an error then exit'''
+    show_tail(logstr)
+    raise(FirmwareLoadError("FAILED: %s" % test))
 
 def wait_devices(devices, timeout=10):
     '''wait for devices to appear'''
@@ -41,15 +53,12 @@ def power_wait_devices(devices):
         if wait_devices(devices):
             time.sleep(1)
             return True
-    print("Failed to power up devices")
-    sys.exit(1)
-
+    failure("Failed to power up devices")
 
 def failure(msg):
-    '''show a failure msg and exit'''
+    '''show a failure msg and raise an exception'''
     print(msg)
-    sys.exit(1)
-    
+    raise(FirmwareLoadError(msg))
 
 def wait_field(refmav, msg_type, field):
     '''wait for a field value'''
@@ -67,3 +76,17 @@ def param_value(test, pname):
     test.send('param show %s\n' % pname)
     test.expect('%s\s+(-?\d+\.\d+)\r\n' % pname)
     return float(test.match.group(1))
+
+def set_servo(mav, servo, value):
+    '''set a servo to a value'''
+    mav.mav.command_long_send(0, 0,
+                              mavutil.mavlink.MAV_CMD_DO_SET_SERVO, 0,
+                              servo, value,
+                              0, 0, 0, 0, 0)
+
+def discard_messages(mav):
+    '''discard any buffered messages'''
+    while True:
+        msg = mav.recv_msg()
+        if msg is None:
+            return

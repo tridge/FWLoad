@@ -12,8 +12,12 @@ import sys
 from config import *
 
 util.power_wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG])
-jtag.load_all_firmwares(retries=3)
+if not jtag.load_all_firmwares(retries=3):
+    print("**** Factory install FAILED (JTAG) ***")
+    sys.exit(1)
 time.sleep(1)
-accelcal.accel_calibrate()
-print("Factory install complete")
+if not accelcal.accel_calibrate_retries(retries=2):
+    print("**** Factory install FAILED (ACCELCAL) ***")
+    sys.exit(1)
+print("Factory install complete - PASSED")
 sys.exit(0)

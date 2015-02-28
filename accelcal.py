@@ -13,10 +13,25 @@ import test_sensors
 import mav_reference
 import mav_test
 
+
+def adjust_ahrs_trim(test, level_attitude):
+    '''adjust AHRS_TRIM_{X,y} on test board based on attitude of reference
+    board when level in accelcal.
+    Note that increasing AHRS_TRIM_X decreases roll
+    '''
+    trim_x = util.param_value(test, 'AHRS_TRIM_X')
+    trim_y = util.param_value(test, 'AHRS_TRIM_Y')
+    trim_x -= level_attitude.roll
+    trim_y -= level_attitude.pitch
+    util.param_set(test, 'AHRS_TRIM_X', trim_x)
+    util.param_set(test, 'AHRS_TRIM_Y', trim_y)
+    print("Trim: %f %f %f %f" % (level_attitude.roll, level_attitude.pitch, trim_x, trim_y))
+
 def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     '''run accelcal'''
     print("STARTING ACCEL CALIBRATION")
 
+    level_attitude = None
     test.send("accelcal\n")
     for rotation in ['level', 'left', 'right', 'up', 'down', 'back']:
         try:
@@ -25,7 +40,9 @@ def accel_calibrate_run(ref, refmav, test, testmav, testlog):
         except Exception as ex:
             util.show_tail(testlog)
             util.failure("Failed to get place vehicle message for %s" % rotation)
-        rotate.set_rotation(ref, refmav, rotation)
+        attitude = rotate.set_rotation(ref, refmav, rotation)
+        if rotation == 'level':
+            level_attitude = attitude
         test.send("\n")
     i = test.expect(["Calibration successful","Calibration FAILED"])
     if i != 0:
@@ -36,7 +53,7 @@ def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     test.send("param fetch\n")
     rotate.set_rotation(ref, refmav, 'level', wait=False)
     test.expect('Received [0-9]+ parameters')
-
+    adjust_ahrs_trim(test, level_attitude)
 
 def accel_calibrate():
     '''run full accel calibration'''

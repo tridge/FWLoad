@@ -77,6 +77,11 @@ def param_value(test, pname):
     test.expect('%s\s+(-?\d+\.\d+)\r\n' % pname)
     return float(test.match.group(1))
 
+def param_set(test, pname, value):
+    '''get a param value given a mavproxy connection'''
+    test.send('param set %s %f\n' % (pname, value))
+    test.expect('>')
+
 def set_servo(mav, servo, value):
     '''set a servo to a value'''
     mav.mav.command_long_send(0, 0,

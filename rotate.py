@@ -82,7 +82,6 @@ def wait_quiescent(refmav):
     if attitude is None:
         util.failure("Failed to receive ATTITUDE message")
     t2 = time.time()
-    print("Wait time %.2f" % (t2-t1))
     return attitude
             
 
@@ -130,7 +129,7 @@ def set_rotation(ref, refmav, rotation, wait=True):
     util.set_servo(refmav, YAW_CHANNEL, c1)
     util.set_servo(refmav, PITCH_CHANNEL, c2)
     if not wait:
-        return
+        return refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
 
     time.sleep(1)
     util.discard_messages(refmav)
@@ -143,6 +142,7 @@ def set_rotation(ref, refmav, rotation, wait=True):
     # now optimise it
     if not optimise_attitude(ref, refmav, rotation, tolerance):
         util.failure("Failed to reach target attitude")
+    return refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
 
 if __name__ == '__main__':
     ref = mav_reference.mav_reference()

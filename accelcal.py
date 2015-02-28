@@ -14,7 +14,7 @@ import mav_reference
 import mav_test
 
 
-def adjust_ahrs_trim(test, level_attitude):
+def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
     '''adjust AHRS_TRIM_{X,y} on test board based on attitude of reference
     board when level in accelcal.
     Note that increasing AHRS_TRIM_X decreases roll
@@ -49,11 +49,11 @@ def accel_calibrate_run(ref, refmav, test, testmav, testlog):
         util.show_tail(testlog)
         util.failure("Accel calibration failed")
     test.send("\n")
-    test.expect("RTL>")
+    util.wait_prompt(test)
     test.send("param fetch\n")
     rotate.set_rotation(ref, refmav, 'level', wait=False)
     test.expect('Received [0-9]+ parameters')
-    adjust_ahrs_trim(test, level_attitude)
+    adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude)
 
 def accel_calibrate():
     '''run full accel calibration'''
@@ -61,8 +61,7 @@ def accel_calibrate():
     testlog = StringIO()
     try:
         ref = mav_reference.mav_reference(reflog)
-        ref.expect(['Received [0-9]+ parameters', 'MANUAL>'])
-        ref.expect(['Received [0-9]+ parameters', 'MANUAL>'])
+        ref.expect(['MANUAL>'])
 
         print("CONNECTING MAVLINK TO REFERENCE BOARD")
         refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
@@ -72,18 +71,13 @@ def accel_calibrate():
     
     try:
         test = mav_test.mav_test(testlog)
-        test.expect(['Received [0-9]+ parameters', 'RTL>'])
-        test.expect(['Received [0-9]+ parameters', 'RTL>'])
+        util.wait_prompt(test)
         
         print("CONNECTING MAVLINK TO TEST BOARD")
         testmav = mavutil.mavlink_connection('127.0.0.1:14551', robust_parsing=True)
         testmav.wait_heartbeat()
     except Exception as ex:
         util.show_error('Connecting to test board', ex, testlog)
-
-    # get all parms again so they are in the log
-    test.send("param fetch\n")
-    test.expect('Received [0-9]+ parameters')
 
     accel_calibrate_run(ref, refmav, test, testmav, testlog)
     test_sensors.check_accel_cal(ref, refmav, test, testmav)

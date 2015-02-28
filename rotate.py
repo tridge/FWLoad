@@ -146,8 +146,7 @@ def set_rotation(ref, refmav, rotation, wait=True):
 
 if __name__ == '__main__':
     ref = mav_reference.mav_reference()
-    ref.expect(['Received [0-9]+ parameters', 'MANUAL>'])
-    ref.expect(['Received [0-9]+ parameters', 'MANUAL>'])
+    ref.expect(['MANUAL>'])
 
     refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
     refmav.wait_heartbeat()

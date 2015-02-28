@@ -95,3 +95,7 @@ def discard_messages(mav):
         msg = mav.recv_msg()
         if msg is None:
             return
+
+def wait_prompt(test):
+    '''wait for mavproxy prompt, coping with multiple modes'''
+    test.expect(IDLE_MODES)

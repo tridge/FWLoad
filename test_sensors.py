@@ -47,19 +47,38 @@ def check_baro(ref, refmav, test, testmav):
     ref_press = util.wait_field(refmav, 'SCALED_PRESSURE', 'press_abs')
     press1 = util.wait_field(testmav, 'SCALED_PRESSURE', 'press_abs')
     press2 = util.wait_field(testmav, 'SCALED_PRESSURE2', 'press_abs')
-    if abs(ref_press - press1) > 10:
+    if abs(ref_press - press1) > PRESSURE_TOLERANCE:
         util.failure("Baro1 error pressure=%f should be %f" % (press1, ref_press))
-    if abs(ref_press - press2) > 10:
+    if abs(ref_press - press2) > PRESSURE_TOLERANCE:
         util.failure("Baro2 error pressure=%f should be %f" % (press2, ref_press))
 
     ref_temp = util.wait_field(refmav, 'SCALED_PRESSURE', 'temperature')*0.01
     temp1 = util.wait_field(testmav, 'SCALED_PRESSURE', 'temperature')*0.01
     temp2 = util.wait_field(testmav, 'SCALED_PRESSURE2', 'temperature')*0.01
-    if abs(ref_temp - temp1) > 20:
+    if abs(ref_temp - temp1) > TEMPERATURE_TOLERANCE:
         util.failure("Baro1 error temperature=%f should be %f" % (temp1, ref_temp))
-    if abs(ref_temp - temp2) > 20:
+    if abs(ref_temp - temp2) > TEMPERATURE_TOLERANCE:
         util.failure("Baro2 error temperature=%f should be %f" % (temp2, ref_temp))
     print("Baros OK")
+
+def check_power(ref, refmav, test, testmav):
+    '''check power'''
+    ref_vcc  = util.wait_field(refmav, 'POWER_STATUS', 'Vcc')*0.001
+    test_vcc = util.wait_field(testmav, 'POWER_STATUS', 'Vcc')*0.001
+    if abs(ref_vcc - test_vcc) > VOLTAGE_TOLERANCE:
+        util.failure("Vcc error %.2f should be %.2f" % (test_vcc, ref_vcc))
+
+    ref_vservo  = util.wait_field(refmav, 'POWER_STATUS', 'Vservo')*0.001
+    test_vservo = util.wait_field(testmav, 'POWER_STATUS', 'Vservo')*0.001
+    if abs(ref_vservo - test_vservo) > VOLTAGE_TOLERANCE:
+        util.failure("Vservo error %.2f should be %.2f" % (test_vservo, ref_vservo))
+
+    ref_flags  = util.wait_field(refmav, 'POWER_STATUS', 'flags')
+    test_flags = util.wait_field(testmav, 'POWER_STATUS', 'flags')
+    if ref_flags != test_flags:
+        util.failure("power flags error %u should be %u" % (ref_flags, test_flags))
+        
+    print("Voltages OK")
         
 
 

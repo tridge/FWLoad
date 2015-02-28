@@ -38,6 +38,10 @@ ROTATION_TOLERANCE = 5.0
 
 GYRO_TOLERANCE = radians(0.2)
 
+PRESSURE_TOLERANCE = 10
+TEMPERATURE_TOLERANCE = 20
+VOLTAGE_TOLERANCE = 0.2
+
 # what channels control pitch and yaw in body frame
 
 # yaw in body frame

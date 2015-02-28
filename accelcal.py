@@ -92,6 +92,7 @@ def accel_calibrate():
 
     test_sensors.check_baro(ref, refmav, test, testmav)
     test_sensors.check_mag(ref, refmav, test, testmav)
+    test_sensors.check_power(ref, refmav, test, testmav)
 
 def accel_calibrate_retries(retries=2):
     '''run full accel calibration with retries

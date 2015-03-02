@@ -167,11 +167,27 @@ def set_rotation(ref, refmav, rotation, wait=True):
     return refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
 
 if __name__ == '__main__':
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description=__doc__)
+
+    parser.add_argument("--tolerance", type=float, dest="tolerance", default=ROTATION_LEVEL_TOLERANCE,
+                        help="rotation tolerance")
+    parser.add_argument("--wait", dest="wait", action='store_true', default=False,
+                        help="wait for completion")
+    parser.add_argument("--yaw-zero", type=int, default=ROTATIONS['level'].chan1,
+                        help="zero on yaw channel")
+    parser.add_argument("rotation", default="level", help="target rotation")
+    args = parser.parse_args()
+
+    ROTATION_LEVEL_TOLERANCE = args.tolerance
+    ROTATION_TOLERANCE = args.tolerance
+    ROTATIONS['level'].chan1 = args.yaw_zero
+
     ref = mav_reference.mav_reference()
     ref.expect(['MANUAL>'])
 
     refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
     refmav.wait_heartbeat()
 
-    set_rotation(ref, refmav, sys.argv[1], wait=0)
-    
+    print("Rotating to %s" % args.rotation)
+    set_rotation(ref, refmav, args.rotation, wait=args.wait)

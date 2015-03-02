@@ -12,7 +12,7 @@ from pymavlink import mavutil
 import test_sensors
 import mav_reference
 import mav_test
-
+import power_control
 
 def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
     '''adjust AHRS_TRIM_{X,y} on test board based on attitude of reference
@@ -88,23 +88,28 @@ def accel_calibrate():
     test_sensors.check_mag(ref, refmav, test, testmav)
     test_sensors.check_power(ref, refmav, test, testmav)
 
-def accel_calibrate_retries(retries=2):
+def accel_calibrate_retries(retries=4):
     '''run full accel calibration with retries
     return True on success, False on failure
     '''
     while retries > 0:
         retries -= 1
+        if not util.power_wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
+            print("FAILED to find USB test and reference devices")
+            power_control.power_cycle()
+            continue
         try:
             accel_calibrate()
         except Exception as ex:
-            if retries == 0:
-                return False
-            print("RETRYING ACCEL CAL")
+            print("accel cal failed: %s" % ex)
+            if retries > 0:
+                print("RETRYING ACCEL CAL")
+                power_control.power_cycle()
             continue
         print("PASSED ACCEL CAL")
         return True
-    print("no more retries")
+    print("accelcal: no more retries")
     return False
 
 if __name__ == '__main__':
-    accel_calibrate()
+    accel_calibrate_retries()

@@ -54,6 +54,7 @@ def power_wait_devices(devices):
             time.sleep(1)
             return True
     failure("Failed to power up devices")
+    return False
 
 def failure(msg):
     '''show a failure msg and raise an exception'''

@@ -11,13 +11,16 @@ import util
 import sys
 from config import *
 
-util.power_wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG])
+while not util.power_wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
+    print("waiting for power up....")
+
 if not jtag.load_all_firmwares(retries=3):
-    print("**** Factory install FAILED (JTAG) ***")
+    print("FAILED: JTAG firmware install failed")
     sys.exit(1)
-time.sleep(1)
-if not accelcal.accel_calibrate_retries(retries=2):
-    print("**** Factory install FAILED (ACCELCAL) ***")
+
+if not accelcal.accel_calibrate_retries(retries=4):
+    print("FAILED: accelerometer calibration failed")
     sys.exit(1)
-print("Factory install complete - PASSED")
+
+print("PASSED: Factory install complete")
 sys.exit(0)

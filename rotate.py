@@ -90,7 +90,8 @@ def optimise_attitude(ref, refmav, rotation, tolerance):
     (chan1, chan2, expected_roll, expected_pitch) = ROTATIONS[rotation]
 
     attitude = wait_quiescent(refmav)
-    while True:
+    time_start = time.time()
+    while time.time() < time_start+25:
         dcm_estimated = Matrix3()
         dcm_estimated.from_euler(attitude.roll, attitude.pitch, attitude.yaw)
     
@@ -107,17 +108,21 @@ def optimise_attitude(ref, refmav, rotation, tolerance):
         (chan1_change, chan2_change) = gimbal_controller(dcm_estimated,
                                                          dcm_demanded, chan1)
         (err_roll, err_pitch) = attitude_error(attitude, expected_roll, expected_pitch)
-        print("%s error: %.2f %.2f" % (rotation, err_roll, err_pitch))
+        print("%s error: %.2f %.2f chan1=%u chan2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
         if (abs(err_roll)+abs(err_pitch) < tolerance or
             (abs(chan1_change)<1 and abs(chan2_change)<1)):
             print("%s converged %.2f %.2f tolerance %.1f" % (rotation, err_roll, err_pitch, tolerance))
             return True
         chan1 += chan1_change
         chan2 += chan2_change
+        if chan1 < 700 or chan1 > 2300 or chan2 < 700 or chan2 > 2300:
+            print("servos out of range - failed")
+            return False
         util.set_servo(refmav, YAW_CHANNEL, chan1)
         util.set_servo(refmav, PITCH_CHANNEL, chan2)
         attitude = wait_quiescent(refmav)
-    return True
+    print("timed out rotating to %s" % rotation)
+    return False
 
 def set_rotation(ref, refmav, rotation, wait=True):
     '''set servo rotation'''

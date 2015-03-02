@@ -10,10 +10,9 @@ def power_cycle(down_time=2):
     global ser_dev
     if ser_dev is None:
         ser_dev = serial.Serial(FTDI_POWER, rtscts=True)
-    print("powering off")
+    print("powering cycling")
     ser_dev.setRTS(1)
     time.sleep(down_time)
-    print("powering on")
     ser_dev.setRTS(0)
     
 if __name__ == '__main__':

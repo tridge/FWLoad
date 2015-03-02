@@ -10,6 +10,7 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+    CLEARSCREEN = '\033[2J'
 
 def print_fail(msg):
     '''print a failure message'''
@@ -22,6 +23,10 @@ def print_green(msg):
 def print_blue(msg):
     '''print a blue message'''
     print(bcolors.BLUE + bcolors.BOLD + msg + bcolors.ENDC)
+
+def clear_screen():
+    '''clear screen'''
+    print(bcolors.CLEARSCREEN + bcolors.ENDC)
 
 
 if __name__ == '__main__':

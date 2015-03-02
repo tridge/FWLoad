@@ -47,7 +47,7 @@ def load_all_firmwares(retries=3):
         if not util.wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG]):
             if retries == 1:
                 print("RETRIES=1 - POWER CYCLING")
-                util.power_wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG])
+                power_control.power_cycle()
             continue
 
         try:

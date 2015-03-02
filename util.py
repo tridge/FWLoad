@@ -40,7 +40,6 @@ def wait_devices(devices, timeout=10):
         if all_exist:
             return True
         time.sleep(0.1)
-    print("Missing devices: %s" % missing)
     return False
 
 def wait_no_device(devices, timeout=10):
@@ -56,19 +55,6 @@ def wait_no_device(devices, timeout=10):
         time.sleep(0.1)
     return False
 
-
-def power_wait_devices(devices):
-    '''wait for all needed JTAG devices'''
-    retries = 5
-    while retries > 0:
-        retries -= 1
-        power_control.power_cycle()
-        print("Waiting for power up")
-        if wait_devices(devices):
-            time.sleep(1)
-            return True
-    failure("Failed to power up devices")
-    return False
 
 def failure(msg):
     '''show a failure msg and raise an exception'''

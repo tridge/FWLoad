@@ -94,11 +94,12 @@ def accel_calibrate_retries(retries=4):
     '''
     while retries > 0:
         retries -= 1
-        if not util.power_wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
+        if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
             print("FAILED to find USB test and reference devices")
             power_control.power_cycle()
             continue
         try:
+            time.sleep(2)
             accel_calibrate()
         except Exception as ex:
             print("accel cal failed: %s" % ex)

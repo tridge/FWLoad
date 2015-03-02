@@ -31,10 +31,18 @@ while True:
         util.wait_no_device([FMU_JTAG, IO_JTAG], timeout=600)
 
     # wait for the power to come on again
-    while not util.power_wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
+    while not util.wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
         print("waiting for power up....")
 
     start_time = time.time()
+
+    colour_text.clear_screen()
+
+    colour_text.print_blue('''
+=======================
+| Starting installation
+=======================
+''')
     
     if not jtag.load_all_firmwares(retries=3):
         colour_text.print_fail('''

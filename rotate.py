@@ -96,6 +96,12 @@ def optimise_attitude(ref, refmav, rotation, tolerance):
 
     attitude = wait_quiescent(refmav)
     time_start = time.time()
+
+    # we always do at least 2 tries. This means the attitude accuracy
+    # will tend to improve over time, while not adding excessive time
+    # per board
+    tries = 0
+    
     while time.time() < time_start+25:
         dcm_estimated = Matrix3()
         dcm_estimated.from_euler(attitude.roll, attitude.pitch, attitude.yaw)
@@ -114,10 +120,10 @@ def optimise_attitude(ref, refmav, rotation, tolerance):
                                                          dcm_demanded, chan1)
         (err_roll, err_pitch) = attitude_error(attitude, expected_roll, expected_pitch)
         print("%s error: %.2f %.2f chan1=%u chan2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
-        if (abs(err_roll)+abs(err_pitch) < tolerance or
-            (abs(chan1_change)<1 and abs(chan2_change)<1)):
+        if (tries > 0 and (abs(err_roll)+abs(err_pitch) < tolerance or
+                           (abs(chan1_change)<1 and abs(chan2_change)<1))):
             print("%s converged %.2f %.2f tolerance %.1f" % (rotation, err_roll, err_pitch, tolerance))
-            # update optimised rotations to save on convergence time when in a loop
+            # update optimised rotations to save on convergence time for the next board
             ROTATIONS[rotation].chan1 = chan1
             ROTATIONS[rotation].chan2 = chan2
             return True
@@ -129,6 +135,8 @@ def optimise_attitude(ref, refmav, rotation, tolerance):
         util.set_servo(refmav, YAW_CHANNEL, chan1)
         util.set_servo(refmav, PITCH_CHANNEL, chan2)
         attitude = wait_quiescent(refmav)
+        tries += 1
+        
     print("timed out rotating to %s" % rotation)
     return False
 

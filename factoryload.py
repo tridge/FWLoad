@@ -9,26 +9,52 @@ import power_control
 import time
 import util
 import sys
+import colour_text
 from config import *
 
+from argparse import ArgumentParser
+parser = ArgumentParser(description=__doc__)
+
+parser.add_argument("--test", dest="test", default=False, action='store_true', help="run in test loop")
+args = parser.parse_args()
+
+
+colour_text.print_blue("Starting up")
+
 while True:
-    start_time = time.time()
-    
+    if args.test:
+        # power cycle each time, simulating new board put in
+        power_control.power_cycle()
+    else:
+        # wait for the power to be switched off
+        print("waiting for power off")
+        util.wait_no_device([FMU_JTAG, IO_JTAG], timeout=600)
+
+    # wait for the power to come on again
     while not util.power_wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
         print("waiting for power up....")
 
+    start_time = time.time()
+    
     if not jtag.load_all_firmwares(retries=3):
-        print("FAILED: JTAG firmware install failed")
-        power_control.power_cycle()
+        colour_text.print_fail('''
+======================================
+| FAILED: JTAG firmware install failed
+======================================
+''')
         continue
     
     if not accelcal.accel_calibrate_retries(retries=4):
-        print("FAILED: accelerometer calibration failed")
-        power_control.power_cycle()
+        colour_text.print_fail('''
+==========================================
+| FAILED: accelerometer calibration failed
+==========================================
+''')
         continue
 
-    print("PASSED: Factory install complete (%u seconds)" % (time.time() - start_time))
-
-    # power cycle at the end, simulating new board put in
-    power_control.power_cycle()
-
+    # all OK
+    colour_text.print_green('''
+================================================
+| PASSED: Factory install complete (%u seconds)
+================================================
+''' %  (time.time() - start_time))

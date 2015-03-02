@@ -43,6 +43,20 @@ def wait_devices(devices, timeout=10):
     print("Missing devices: %s" % missing)
     return False
 
+def wait_no_device(devices, timeout=10):
+    '''wait for devices to disappear'''
+    start_time = time.time()
+    while start_time+timeout >= time.time():
+        found_device = False
+        for dev in devices:
+            if os.path.exists(dev):
+                found_device = True
+        if not found_device:
+            return True
+        time.sleep(0.1)
+    return False
+
+
 def power_wait_devices(devices):
     '''wait for all needed JTAG devices'''
     retries = 5

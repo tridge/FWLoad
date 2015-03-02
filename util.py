@@ -66,10 +66,12 @@ def wait_field(refmav, msg_type, field):
     msg = None
     # get the latest available msg
     while True:
-        msg2 = refmav.recv_match(type=msg_type, blocking=(msg==None))
+        msg2 = refmav.recv_match(type=msg_type, blocking=(msg==None), timeout=5)
         if msg2 is None:
             break
         msg = msg2
+    if msg is None:
+        failure("failed to reveive message %s" % msg_type)
     return getattr(msg, field)
 
 def param_value(test, pname):

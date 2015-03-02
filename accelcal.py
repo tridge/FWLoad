@@ -87,6 +87,7 @@ def accel_calibrate():
     test_sensors.check_baro(ref, refmav, test, testmav)
     test_sensors.check_mag(ref, refmav, test, testmav)
     test_sensors.check_power(ref, refmav, test, testmav)
+    test_sensors.check_serial(ref, refmav, test, testmav)
 
 def accel_calibrate_retries(retries=4):
     '''run full accel calibration with retries
@@ -96,7 +97,7 @@ def accel_calibrate_retries(retries=4):
         retries -= 1
         if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
             print("FAILED to find USB test and reference devices")
-            power_control.power_cycle()
+            power_control.power_cycle(down_time=4)
             continue
         try:
             time.sleep(2)
@@ -105,7 +106,7 @@ def accel_calibrate_retries(retries=4):
             print("accel cal failed: %s" % ex)
             if retries > 0:
                 print("RETRYING ACCEL CAL")
-                power_control.power_cycle()
+                power_control.power_cycle(down_time=4)
             continue
         print("PASSED ACCEL CAL")
         return True

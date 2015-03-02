@@ -5,6 +5,8 @@ test sensors against reference board
 import util
 from config import *
 from math import *
+import mav_reference, mav_test
+from pymavlink import mavutil
 
 def check_accel_cal(ref, refmav, test, testmav):
     '''check accel cal'''
@@ -45,8 +47,14 @@ def check_gyro_cal(ref, refmav, test, testmav):
 def check_baro(ref, refmav, test, testmav):
     '''check baros'''
     ref_press = util.wait_field(refmav, 'SCALED_PRESSURE', 'press_abs')
+    if ref_press is None:
+        util.failure("No reference pressure")
     press1 = util.wait_field(testmav, 'SCALED_PRESSURE', 'press_abs')
     press2 = util.wait_field(testmav, 'SCALED_PRESSURE2', 'press_abs')
+    if press1 is None:
+        util.failure("No pressure1 available")
+    if press2 is None:
+        util.failure("No pressure2 available")
     if abs(ref_press - press1) > PRESSURE_TOLERANCE:
         util.failure("Baro1 error pressure=%f should be %f" % (press1, ref_press))
     if abs(ref_press - press2) > PRESSURE_TOLERANCE:
@@ -91,4 +99,71 @@ def check_mag(ref, refmav, test, testmav):
     if field < 100 or field > 1000:
         print("Bad magnetic field (%u, %u, %u)" % (magx, magy, magz))
     print("Magnetometer OK")
+
+
+def serial_control_buf(str):
+    '''format for sending with SERIAL_CONTROL'''
+    buf = [ord(x) for x in str]
+    buf.extend([0]*(70-len(buf)))
+    return buf
+
+def serial_control_str(msg):
+    '''handle receiving with SERIAL_CONTROL'''
+    buf = msg.data
+    s = ''
+    for i in range(70):
+        c = buf[i]
+        if c == 0:
+            break
+        s += chr(c)
+    return s
     
+def check_serial_pair(testmav, port1, port2):
+    '''check a pair of loopback serial ports'''
+
+    # lock both ports and flush data
+    flags = mavutil.mavlink.SERIAL_CONTROL_FLAG_EXCLUSIVE | mavutil.mavlink.SERIAL_CONTROL_FLAG_RESPOND | mavutil.mavlink.SERIAL_CONTROL_FLAG_MULTI
+    testmav.mav.serial_control_send(port1, flags, 0, 0, 0, serial_control_buf("FLUSH1"))
+    testmav.mav.serial_control_send(port2, flags, 0, 0, 0, serial_control_buf("FLUSH2"))
+
+    reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+    reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+    util.discard_messages(testmav)
+
+    testmav.mav.serial_control_send(port1, flags, 0, 0, 0, serial_control_buf("TEST1"))
+    testmav.mav.serial_control_send(port2, flags, 0, 0, 0, serial_control_buf("TEST2"))
+
+    reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+    reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+    if reply1 is None or reply2 is None:
+        util.failure("No reply on serial ports %u %u" % (port1, port2))
+
+    str1 = serial_control_str(reply1)
+    str2 = serial_control_str(reply2)
+    if str1 != 'TEST1' or str2 != 'TEST2':
+        print(reply1)
+        print(reply2)
+        util.failure("Incorrect serial response on ports %u %u" % (port1, port2))
+
+def check_serial(ref, refmav, test, testmav):
+    '''check a pair of loopback serial ports'''
+    check_serial_pair(testmav,
+                      mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM1,
+                      mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM2)
+    print("Telemetry serial ports OK")
+    check_serial_pair(testmav,
+                      mavutil.mavlink.SERIAL_CONTROL_DEV_GPS1,
+                      mavutil.mavlink.SERIAL_CONTROL_DEV_GPS2)
+    print("GPS serial ports OK")
+
+if __name__ == '__main__':
+    ref = mav_reference.mav_reference()
+    refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
+
+    test = mav_test.mav_test()
+    testmav = mavutil.mavlink_connection('127.0.0.1:14551', robust_parsing=True)
+
+    check_baro(ref, refmav, test, testmav)
+    check_mag(ref, refmav, test, testmav)
+    check_power(ref, refmav, test, testmav)
+    check_serial(ref, refmav, test, testmav)

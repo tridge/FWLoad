@@ -8,9 +8,12 @@ import jtag
 import power_control
 import time
 import util
-import sys
+import sys, os
 import colour_text
 from config import *
+
+# disable stdout buffering
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
 from argparse import ArgumentParser
 parser = ArgumentParser(description=__doc__)

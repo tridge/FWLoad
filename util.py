@@ -22,7 +22,7 @@ def show_tail(logstr):
     logstr.seek(ofs)
 
 def show_error(test, ex, logstr):
-    '''display an error then exit'''
+    '''display an error then raise an exception'''
     show_tail(logstr)
     raise(FirmwareLoadError("FAILED: %s" % test))
 

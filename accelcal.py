@@ -61,7 +61,7 @@ def accel_calibrate():
     testlog = StringIO()
     try:
         ref = mav_reference.mav_reference(reflog)
-        ref.expect(['MANUAL>'])
+        ref.expect(['MANUAL>'], timeout=15)
 
         print("CONNECTING MAVLINK TO REFERENCE BOARD")
         refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)

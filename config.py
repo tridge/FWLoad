@@ -61,6 +61,12 @@ PITCH_SCALE = -34.0/100
 IDLE_MODES = ["RTL>","CIRCLE>","MANUAL>","STABILIZE>"]
 
 
+class Rotation(object):
+    def __init__(self, chan1, chan2, roll, pitch):
+        self.chan1 = chan1
+        self.chan2 = chan2
+        self.roll = roll
+        self.pitch = pitch
 
 # servo positions for different orientations of boards in the test jig
 # the columns are:
@@ -69,17 +75,10 @@ IDLE_MODES = ["RTL>","CIRCLE>","MANUAL>","STABILIZE>"]
 #    expected roll
 #    expected pitch
 ROTATIONS = {
-    'level' : (1272, 1687,    0,    0),
-    'right' : (855,  1420,   90,    0),
-    'left'  : (1660, 1420,  -90,    0),
-    'up'    : (1260, 1420,  None,  90),
-    'down'  : (1274, 1950,  None, -90),
-    'back'  : (1255, 1180,  180,    0)
+    'level' : Rotation(1272, 1687,    0,    0),
+    'right' : Rotation(855,  1420,   90,    0),
+    'left'  : Rotation(1660, 1420,  -90,    0),
+    'up'    : Rotation(1260, 1420,  None,  90),
+    'down'  : Rotation(1274, 1950,  None, -90),
+    'back'  : Rotation(1255, 1180,  180,    0)
     }
-
-'''
-level: yaw:5 pitch:6
-
-
-
-'''

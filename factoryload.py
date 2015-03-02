@@ -11,16 +11,24 @@ import util
 import sys
 from config import *
 
-while not util.power_wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
-    print("waiting for power up....")
+while True:
+    start_time = time.time()
+    
+    while not util.power_wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
+        print("waiting for power up....")
 
-if not jtag.load_all_firmwares(retries=3):
-    print("FAILED: JTAG firmware install failed")
-    sys.exit(1)
+    if not jtag.load_all_firmwares(retries=3):
+        print("FAILED: JTAG firmware install failed")
+        power_control.power_cycle()
+        continue
+    
+    if not accelcal.accel_calibrate_retries(retries=4):
+        print("FAILED: accelerometer calibration failed")
+        power_control.power_cycle()
+        continue
 
-if not accelcal.accel_calibrate_retries(retries=4):
-    print("FAILED: accelerometer calibration failed")
-    sys.exit(1)
+    print("PASSED: Factory install complete (%u seconds)" % (time.time() - start_time))
 
-print("PASSED: Factory install complete")
-sys.exit(0)
+    # power cycle at the end, simulating new board put in
+    power_control.power_cycle()
+

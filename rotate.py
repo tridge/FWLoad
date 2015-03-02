@@ -43,7 +43,7 @@ def gimbal_controller(dcm_estimated, dcm_demanded, chan1):
         scaler = -2.0
     bf_rates = scaler * Vector3(quatErr[1], quatErr[2], quatErr[3])
 
-    yaw_joint_rad = radians((chan1 - ROTATIONS['level'][0]) * YAW_SCALE)
+    yaw_joint_rad = radians((chan1 - ROTATIONS['level'].chan1) * YAW_SCALE)
     chan1_change = degrees(bf_rates.z) * YAW_SCALE
     chan2_change = degrees(bf_rates.x * sin(yaw_joint_rad) +
                            bf_rates.y * cos(yaw_joint_rad)) / PITCH_SCALE
@@ -71,7 +71,9 @@ def wait_quiescent(refmav):
     
     while time.time() < t1+20:
         raw_imu = refmav.recv_match(type='RAW_IMU',
-                                    blocking=True, timeout=2)
+                                    blocking=True, timeout=4)
+        if raw_imu is None:
+            util.failure("communication with reference board lost")
         if (abs(raw_imu.xgyro*0.001) < GYRO_TOLERANCE and
             abs(raw_imu.ygyro*0.001) < GYRO_TOLERANCE and
             abs(raw_imu.zgyro*0.001) < GYRO_TOLERANCE):
@@ -87,7 +89,10 @@ def wait_quiescent(refmav):
 
 def optimise_attitude(ref, refmav, rotation, tolerance):
     '''optimise attitude using servo changes'''
-    (chan1, chan2, expected_roll, expected_pitch) = ROTATIONS[rotation]
+    expected_roll = ROTATIONS[rotation].roll
+    expected_pitch = ROTATIONS[rotation].pitch
+    chan1 = ROTATIONS[rotation].chan1
+    chan2 = ROTATIONS[rotation].chan2
 
     attitude = wait_quiescent(refmav)
     time_start = time.time()
@@ -112,6 +117,9 @@ def optimise_attitude(ref, refmav, rotation, tolerance):
         if (abs(err_roll)+abs(err_pitch) < tolerance or
             (abs(chan1_change)<1 and abs(chan2_change)<1)):
             print("%s converged %.2f %.2f tolerance %.1f" % (rotation, err_roll, err_pitch, tolerance))
+            # update optimised rotations to save on convergence time when in a loop
+            ROTATIONS[rotation].chan1 = chan1
+            ROTATIONS[rotation].chan2 = chan2
             return True
         chan1 += chan1_change
         chan2 += chan2_change
@@ -128,11 +136,12 @@ def set_rotation(ref, refmav, rotation, wait=True):
     '''set servo rotation'''
     if not rotation in ROTATIONS:
         util.failure("No rotation %s" % rotation)
-    (c1, c2, expected_roll, expected_pitch) = ROTATIONS[rotation]
+    expected_roll = ROTATIONS[rotation].roll
+    expected_pitch = ROTATIONS[rotation].pitch
 
     # start with initial settings from the table
-    util.set_servo(refmav, YAW_CHANNEL, c1)
-    util.set_servo(refmav, PITCH_CHANNEL, c2)
+    util.set_servo(refmav, YAW_CHANNEL, ROTATIONS[rotation].chan1)
+    util.set_servo(refmav, PITCH_CHANNEL, ROTATIONS[rotation].chan2)
     if not wait:
         return refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
 

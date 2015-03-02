@@ -123,15 +123,20 @@ def check_serial_pair(testmav, port1, port2):
 
     # lock both ports and flush data
     flags = mavutil.mavlink.SERIAL_CONTROL_FLAG_EXCLUSIVE | mavutil.mavlink.SERIAL_CONTROL_FLAG_RESPOND | mavutil.mavlink.SERIAL_CONTROL_FLAG_MULTI
-    testmav.mav.serial_control_send(port1, flags, 0, 0, 0, serial_control_buf("FLUSH1"))
-    testmav.mav.serial_control_send(port2, flags, 0, 0, 0, serial_control_buf("FLUSH2"))
 
+    testmav.mav.serial_control_send(port1, flags, 100, 0, 0, serial_control_buf("FLUSH1"))
+    testmav.mav.serial_control_send(port2, flags, 100, 0, 0, serial_control_buf("FLUSH2"))
+    testmav.mav.serial_control_send(port1, flags, 100, 0, 0, serial_control_buf("FLUSH1"))
+    testmav.mav.serial_control_send(port2, flags, 100, 0, 0, serial_control_buf("FLUSH2"))
+
+    reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+    reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
     reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
     reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
     util.discard_messages(testmav)
 
-    testmav.mav.serial_control_send(port1, flags, 0, 0, 0, serial_control_buf("TEST1"))
-    testmav.mav.serial_control_send(port2, flags, 0, 0, 0, serial_control_buf("TEST2"))
+    testmav.mav.serial_control_send(port1, flags, 100, 0, 0, serial_control_buf("TEST1"))
+    testmav.mav.serial_control_send(port2, flags, 100, 0, 0, serial_control_buf("TEST2"))
 
     reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
     reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
@@ -156,14 +161,48 @@ def check_serial(ref, refmav, test, testmav):
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS2)
     print("GPS serial ports OK")
 
-if __name__ == '__main__':
-    ref = mav_reference.mav_reference()
-    refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
+def check_status(ref, refmav, test, testmav):
+    '''check SYS_STATUS flags'''
+    sensor_bits = {
+        'MAG'    : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_MAG,
+        'ACCEL'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_ACCEL,
+        'GYRO'   : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO
+        }
+    teststatus = testmav.recv_match(type='SYS_STATUS', timeout=2)
+    if teststatus is None:
+        util.failure("Failed to get SYS_STATUS from test board")
+    refstatus = testmav.recv_match(type='SYS_STATUS', timeout=2)
+    if refstatus is None:
+        util.failure("Failed to get SYS_STATUS from reference board")
+    for bit in sensor_bits:
+        present = refstatus.onboard_control_sensors_present & sensor_bits[bit]
+        enabled = refstatus.onboard_control_sensors_enabled & sensor_bits[bit]
+        health  = refstatus.onboard_control_sensors_health & sensor_bits[bit]
+        if present == 0 or present != enabled or present != health:
+            util.failure("Reference board %s failure in SYS_STATUS" % bit)
+        present = teststatus.onboard_control_sensors_present & sensor_bits[bit]
+        enabled = teststatus.onboard_control_sensors_enabled & sensor_bits[bit]
+        health  = teststatus.onboard_control_sensors_health & sensor_bits[bit]
+        if present == 0 or present != enabled or present != health:
+            util.failure("Test board %s failure in SYS_STATUS" % bit)
+        print("%s status OK" % bit)
 
-    test = mav_test.mav_test()
-    testmav = mavutil.mavlink_connection('127.0.0.1:14551', robust_parsing=True)
 
+def check_all_sensors(ref, refmav, test, testmav):
+    '''run all sensor checks'''
     check_baro(ref, refmav, test, testmav)
     check_mag(ref, refmav, test, testmav)
     check_power(ref, refmav, test, testmav)
     check_serial(ref, refmav, test, testmav)
+    check_status(ref, refmav, test, testmav)
+    
+
+if __name__ == '__main__':
+    ref = None
+    ref = mav_reference.mav_reference()
+    refmav = mavutil.mavlink_connection("127.0.0.1:14550", robust_parsing=True)
+
+    test = mav_test.mav_test()
+    testmav = mavutil.mavlink_connection("127.0.0.1:14551", robust_parsing=True)
+
+    check_all_sensors(ref, refmav, test, testmav)

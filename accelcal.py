@@ -84,10 +84,8 @@ def accel_calibrate():
     test_sensors.check_gyro_cal(ref, refmav, test, testmav)
     print("Accel calibration complete")
 
-    test_sensors.check_baro(ref, refmav, test, testmav)
-    test_sensors.check_mag(ref, refmav, test, testmav)
-    test_sensors.check_power(ref, refmav, test, testmav)
-    test_sensors.check_serial(ref, refmav, test, testmav)
+    # we run the sensor checks from here to avoid re-opening the links
+    test_sensors.check_all_sensors(ref, refmav, test, testmav)
 
 def accel_calibrate_retries(retries=4):
     '''run full accel calibration with retries

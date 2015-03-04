@@ -121,3 +121,9 @@ def pitch_estimate(RAW_IMU):
 def attitude_estimate(RAW_IMU):
     '''return roll/pitch estimate as tuple'''
     return (roll_estimate(RAW_IMU), pitch_estimate(RAW_IMU))
+
+def kill_processes(process_list):
+    '''kill some processes by name'''
+    from subprocess import call
+    for p in process_list:
+        call(['/usr/bin/pkill', '-9', '-f', p])

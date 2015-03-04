@@ -25,6 +25,9 @@ args = parser.parse_args()
 colour_text.print_blue("Starting up")
 
 while True:
+
+    util.kill_processes(['mavproxy.py', GDB])
+
     if args.test:
         # power cycle each time, simulating new board put in
         power_control.power_cycle()

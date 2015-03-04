@@ -74,9 +74,9 @@ def wait_quiescent(refmav):
                                     blocking=True, timeout=4)
         if raw_imu is None:
             util.failure("communication with reference board lost")
-        if (abs(raw_imu.xgyro*0.001) < GYRO_TOLERANCE and
-            abs(raw_imu.ygyro*0.001) < GYRO_TOLERANCE and
-            abs(raw_imu.zgyro*0.001) < GYRO_TOLERANCE):
+        if (abs(degrees(raw_imu.xgyro*0.001)) < GYRO_TOLERANCE and
+            abs(degrees(raw_imu.ygyro*0.001)) < GYRO_TOLERANCE and
+            abs(degrees(raw_imu.zgyro*0.001)) < GYRO_TOLERANCE):
             break
     if raw_imu is None:
         util.failure("Failed to reach quiescent state")

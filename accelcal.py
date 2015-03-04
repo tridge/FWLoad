@@ -13,23 +13,59 @@ import test_sensors
 import mav_reference
 import mav_test
 import power_control
+from pymavlink.rotmat import Matrix3, Vector3
 
 def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
-    '''adjust AHRS_TRIM_{X,y} on test board based on attitude of reference
-    board when level in accelcal.
-    Note that increasing AHRS_TRIM_X decreases roll
+    '''
+    force the AHRS trim to zero, which removes the effect of the jig not being quite
+    level. This is only incorrect if the accels are not aligned on the board, which
+    we check in check_accel_cal later
     '''
     trim_x = util.param_value(test, 'AHRS_TRIM_X')
     trim_y = util.param_value(test, 'AHRS_TRIM_Y')
-    trim_x -= level_attitude.roll
-    trim_y -= level_attitude.pitch
-    util.param_set(test, 'AHRS_TRIM_X', trim_x)
-    util.param_set(test, 'AHRS_TRIM_Y', trim_y)
     print("Trim: %f %f %f %f" % (level_attitude.roll, level_attitude.pitch, trim_x, trim_y))
+    # check ref accel to all 3 accels on test board
+    # include log of the discrepancy
+    util.param_set(test, 'AHRS_TRIM_X', 0)
+    util.param_set(test, 'AHRS_TRIM_Y', 0)
+
+    # check all accels are in range
+    util.discard_messages(refmav)
+    util.discard_messages(testmav)
+    ref_imu = refmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
+    test_imu1 = testmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
+    test_imu2 = testmav.recv_match(type='SCALED_IMU2', blocking=True, timeout=3)
+    test_imu3 = testmav.recv_match(type='SCALED_IMU3', blocking=True, timeout=3)
+    if ref_imu is None:
+        util.failure("Lost comms to reference board in ahrs trim")
+    if test_imu1 is None or test_imu2 is None or test_imu3 is None:
+        util.failure("Lost comms to test board in ahrs trim")
+    ref_accel = Vector3(ref_imu.xacc, ref_imu.yacc, ref_imu.zacc)*9.81*0.001
+    test_accel1 = Vector3(test_imu1.xacc, test_imu1.yacc, test_imu1.zacc)*9.81*0.001
+    test_accel2 = Vector3(test_imu2.xacc, test_imu2.yacc, test_imu2.zacc)*9.81*0.001
+    test_accel3 = Vector3(test_imu3.xacc, test_imu3.yacc, test_imu3.zacc)*9.81*0.001
+
+    test_error1 = (ref_accel-test_accel1).length()
+    test_error2 = (ref_accel-test_accel2).length()
+    test_error3 = (ref_accel-test_accel3).length()
+    (ref_roll, ref_pitch) = util.attitude_estimate(ref_imu)
+    (test_roll1, test_pitch1) = util.attitude_estimate(test_imu1)
+    (test_roll2, test_pitch2) = util.attitude_estimate(test_imu2)
+    (test_roll3, test_pitch3) = util.attitude_estimate(test_imu3)
+
+    print("Tilt Ref=(%.1f %.1f) Test1=(%.1f %.1f) Test2=(%.1f %.1f) Test3=(%.1f %.1f)" % (
+        ref_roll, ref_pitch,
+        test_roll1, test_pitch1,
+        test_roll2, test_pitch2,
+        test_roll3, test_pitch3))
 
 def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     '''run accelcal'''
     print("STARTING ACCEL CALIBRATION")
+
+    # use zero trims on reference board
+    util.param_set(ref, 'AHRS_TRIM_X', 0)
+    util.param_set(ref, 'AHRS_TRIM_Y', 0)
 
     level_attitude = None
     test.send("accelcal\n")
@@ -51,7 +87,7 @@ def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     test.send("\n")
     util.wait_prompt(test)
     test.send("param fetch\n")
-    rotate.set_rotation(ref, refmav, 'level', wait=False)
+    rotate.set_rotation(ref, refmav, 'slant', wait=True)
     test.expect('Received [0-9]+ parameters')
     adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude)
 

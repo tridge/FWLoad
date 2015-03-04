@@ -2,6 +2,7 @@ import sys, time, os
 import power_control
 from config import *
 from pymavlink import mavutil
+from math import *
 
 class FirmwareLoadError(Exception):
     '''firmload exception class'''
@@ -102,3 +103,21 @@ def discard_messages(mav):
 def wait_prompt(test):
     '''wait for mavproxy prompt, coping with multiple modes'''
     test.expect(IDLE_MODES)
+
+def roll_estimate(RAW_IMU):
+    '''estimate roll from accelerometer'''
+    rx = RAW_IMU.xacc * 9.81 / 1000.0
+    ry = RAW_IMU.yacc * 9.81 / 1000.0
+    rz = RAW_IMU.zacc * 9.81 / 1000.0
+    return degrees(-asin(ry/sqrt(rx**2+ry**2+rz**2)))
+
+def pitch_estimate(RAW_IMU):
+    '''estimate pitch from accelerometer'''
+    rx = RAW_IMU.xacc * 9.81 / 1000.0
+    ry = RAW_IMU.yacc * 9.81 / 1000.0
+    rz = RAW_IMU.zacc * 9.81 / 1000.0
+    return degrees(asin(rx/sqrt(rx**2+ry**2+rz**2)))
+
+def attitude_estimate(RAW_IMU):
+    '''return roll/pitch estimate as tuple'''
+    return (roll_estimate(RAW_IMU), pitch_estimate(RAW_IMU))

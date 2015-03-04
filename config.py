@@ -52,7 +52,14 @@ GYRO_TOLERANCE = 0.2
 PRESSURE_TOLERANCE = 10
 TEMPERATURE_TOLERANCE = 20
 VOLTAGE_TOLERANCE = 0.4
-TILT_TOLERANCE = 0.5
+
+# TILT_TOLERANCE1 is the tilt tolerance for the isolated sensors. We expect that these
+# may be off by a few degrees, which we correct with AHRS trim
+TILT_TOLERANCE1 = 5.0
+
+# TILT_TOLERANCE3 is for the non-isolated sensor. It should be correctly aligned with
+# the circuit board, so tolerance is smaller
+TILT_TOLERANCE3 = 2.0
 
 # what channels control pitch and yaw in body frame the gimbal is a
 # (3,2) arrangement, so the yaw channel is always yaw in body

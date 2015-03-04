@@ -29,6 +29,13 @@ def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
     util.param_set(test, 'AHRS_TRIM_X', 0)
     util.param_set(test, 'AHRS_TRIM_Y', 0)
 
+    # get the board level
+    rotate.set_rotation(ref, refmav, 'level')
+
+    # we need to work out what the error in attitude of the 3 IMUs on the test jig is
+    # to do that we start with it level, and measure the roll/pitch as compared to the reference
+    # then we rotate it to pitch 90 and measure the yaw error
+
     # check all accels are in range
     util.discard_messages(refmav)
     util.discard_messages(testmav)
@@ -41,23 +48,77 @@ def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
     if test_imu1 is None or test_imu2 is None or test_imu3 is None:
         util.failure("Lost comms to test board in ahrs trim")
     ref_accel = Vector3(ref_imu.xacc, ref_imu.yacc, ref_imu.zacc)*9.81*0.001
-    test_accel1 = Vector3(test_imu1.xacc, test_imu1.yacc, test_imu1.zacc)*9.81*0.001
-    test_accel2 = Vector3(test_imu2.xacc, test_imu2.yacc, test_imu2.zacc)*9.81*0.001
-    test_accel3 = Vector3(test_imu3.xacc, test_imu3.yacc, test_imu3.zacc)*9.81*0.001
 
-    test_error1 = (ref_accel-test_accel1).length()
-    test_error2 = (ref_accel-test_accel2).length()
-    test_error3 = (ref_accel-test_accel3).length()
     (ref_roll, ref_pitch) = util.attitude_estimate(ref_imu)
     (test_roll1, test_pitch1) = util.attitude_estimate(test_imu1)
     (test_roll2, test_pitch2) = util.attitude_estimate(test_imu2)
     (test_roll3, test_pitch3) = util.attitude_estimate(test_imu3)
 
-    print("Tilt Ref=(%.1f %.1f) Test1=(%.1f %.1f) Test2=(%.1f %.1f) Test3=(%.1f %.1f)" % (
-        ref_roll, ref_pitch,
-        test_roll1, test_pitch1,
-        test_roll2, test_pitch2,
-        test_roll3, test_pitch3))
+    # get the roll and pitch errors
+    roll_error1 = (test_roll1 - ref_roll)
+    roll_error2 = (test_roll2 - ref_roll)
+    roll_error3 = (test_roll3 - ref_roll)
+    pitch_error1 = (test_pitch1 - ref_pitch)
+    pitch_error2 = (test_pitch2 - ref_pitch)
+    pitch_error3 = (test_pitch3 - ref_pitch)
+
+    # now rotate to pitch 90 to measure the yaw error
+    rotate.set_rotation(ref, refmav, 'up')
+
+    util.discard_messages(refmav)
+    util.discard_messages(testmav)
+    ref_imu = refmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
+    test_imu1 = testmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
+    test_imu2 = testmav.recv_match(type='SCALED_IMU2', blocking=True, timeout=3)
+    test_imu3 = testmav.recv_match(type='SCALED_IMU3', blocking=True, timeout=3)
+    if ref_imu is None:
+        util.failure("Lost comms to reference board in ahrs trim")
+    if test_imu1 is None or test_imu2 is None or test_imu3 is None:
+        util.failure("Lost comms to test board in ahrs trim")
+    ref_accel = Vector3(ref_imu.xacc, ref_imu.yacc, ref_imu.zacc)*9.81*0.001
+
+    # start rotating back to level ready for the end of the test
+    rotate.set_rotation(ref, refmav, 'level', wait=False)
+
+    # when pointing straight up the roll_esimtate() actually estimates yaw error in body frame
+    ref_yaw = util.roll_estimate(ref_imu)
+    test_yaw1 = util.roll_estimate(test_imu1)
+    test_yaw2 = util.roll_estimate(test_imu2)
+    test_yaw3 = util.roll_estimate(test_imu3)
+    yaw_error1 = test_yaw1 - ref_yaw
+    yaw_error2 = test_yaw2 - ref_yaw
+    yaw_error3 = test_yaw3 - ref_yaw
+
+    print("Tilt Ref=(%.1f %.1f %.1f) Test1=(%.1f %.1f %.1f) Test2=(%.1f %.1f %.1f) Test3=(%.1f %.1f %.1f)" % (
+        ref_roll, ref_pitch, ref_yaw,
+        test_roll1, test_pitch1, test_yaw1,
+        test_roll2, test_pitch2, test_yaw2,
+        test_roll3, test_pitch3, test_yaw3))
+
+    if (abs(ref_roll) > ROTATION_TOLERANCE or
+        abs(ref_pitch) > ROTATION_TOLERANCE or
+        abs(ref_yaw) > ROTATION_TOLERANCE):
+        util.failure("Reference board rotation error")
+
+    print("Tilt errors: Roll(%.1f %.1f %.1f) Pitch(%.1f %.1f %.1f) Yaw(%.1f %.1f %.1f) " % (
+        roll_error1, roll_error2, roll_error3,
+        pitch_error1, pitch_error2, pitch_error3,
+        yaw_error1, yaw_error2, yaw_error3))
+
+    if (abs(roll_error1) > TILT_TOLERANCE1 or
+        abs(roll_error2) > TILT_TOLERANCE1 or
+        abs(roll_error3) > TILT_TOLERANCE3):
+        util.failure("Test board roll error")
+
+    if (abs(pitch_error1) > TILT_TOLERANCE1 or
+        abs(pitch_error2) > TILT_TOLERANCE1 or
+        abs(pitch_error3) > TILT_TOLERANCE3):
+        util.failure("Test board pitch error")
+
+    if (abs(yaw_error1) > TILT_TOLERANCE1 or
+        abs(yaw_error2) > TILT_TOLERANCE1 or
+        abs(yaw_error3) > TILT_TOLERANCE3):
+        util.failure("Test board yaw error")
 
 def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     '''run accelcal'''
@@ -87,7 +148,7 @@ def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     test.send("\n")
     util.wait_prompt(test)
     test.send("param fetch\n")
-    rotate.set_rotation(ref, refmav, 'slant', wait=True)
+    rotate.set_rotation(ref, refmav, 'level', wait=False)
     test.expect('Received [0-9]+ parameters')
     adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude)
 

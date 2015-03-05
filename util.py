@@ -100,10 +100,6 @@ def discard_messages(mav):
         if msg is None:
             return
 
-def wait_prompt(test):
-    '''wait for mavproxy prompt, coping with multiple modes'''
-    test.expect(IDLE_MODES)
-
 def roll_estimate(RAW_IMU):
     '''estimate roll from accelerometer'''
     rx = RAW_IMU.xacc * 9.81 / 1000.0
@@ -132,3 +128,17 @@ def wait_heartbeat(mav, timeout=10):
     '''wait for a heartbeat'''
     if mav.recv_match(type='HEARTBEAT', blocking=True, timeout=timeout) is None:
         failure("Failed to get heartbeat")
+
+def safety_off(mav):
+    '''turn off safety switch'''
+    mav.mav.set_mode_send(0, mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY, 0)
+
+def wait_mode(mav, modes, timeout=10):
+    '''wait for one of a set of flight modes'''
+    start_time = time.time()
+    while time.time() < start_time+timeout:
+        wait_heartbeat(mav, timeout=2)
+        print("Flightmode %s" % mav.flightmode)
+        if mav.flightmode in modes:
+            return
+    failure("Failed to get mode from %s" % modes)

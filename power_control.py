@@ -5,12 +5,12 @@ from config import *
 
 ser_dev = None
 
-def power_cycle(down_time=2):
+def power_cycle(down_time=4):
     '''cycle power to test boards and servos'''
     global ser_dev
     if ser_dev is None:
         ser_dev = serial.Serial(FTDI_POWER, rtscts=True)
-    print("powering cycling")
+    print("power cycling")
     ser_dev.setRTS(1)
     time.sleep(down_time)
     ser_dev.setRTS(0)

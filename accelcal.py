@@ -21,11 +21,6 @@ def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
     level. This is only incorrect if the accels are not aligned on the board, which
     we check in check_accel_cal later
     '''
-    trim_x = util.param_value(test, 'AHRS_TRIM_X')
-    trim_y = util.param_value(test, 'AHRS_TRIM_Y')
-    print("Trim: %f %f %f %f" % (level_attitude.roll, level_attitude.pitch, trim_x, trim_y))
-    # check ref accel to all 3 accels on test board
-    # include log of the discrepancy
     util.param_set(test, 'AHRS_TRIM_X', 0)
     util.param_set(test, 'AHRS_TRIM_Y', 0)
 
@@ -145,12 +140,17 @@ def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     if i != 0:
         util.show_tail(testlog)
         util.failure("Accel calibration failed")
-    test.send("\n")
-    util.wait_prompt(test)
-    test.send("param fetch\n")
     rotate.set_rotation(ref, refmav, 'level', wait=False)
-    test.expect('Received [0-9]+ parameters')
     adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude)
+
+def ref_gyro_offset_ok(refmav):
+    '''check if ref gyro offsets are in range'''
+    ref_ofs = refmav.recv_match(type='SENSOR_OFFSETS', blocking=True, timeout=5)
+    if ref_ofs is None:
+        return False
+    return (abs(degrees(ref_ofs.gyro_cal_x)) <= REF_GYRO_TOLERANCE and
+            abs(degrees(ref_ofs.gyro_cal_y)) <= REF_GYRO_TOLERANCE and
+            abs(degrees(ref_ofs.gyro_cal_z)) <= REF_GYRO_TOLERANCE)
 
 def accel_calibrate():
     '''run full accel calibration'''
@@ -158,21 +158,34 @@ def accel_calibrate():
     testlog = StringIO()
     try:
         ref = mav_reference.mav_reference(reflog)
-        ref.expect(['MANUAL>'], timeout=15)
 
         print("CONNECTING MAVLINK TO REFERENCE BOARD")
         refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
         util.wait_heartbeat(refmav)
+        util.wait_mode(refmav, IDLE_MODES)
     except Exception as ex:
         util.show_error('Connecting to reference board', ex, reflog)
+
+    if not ref_gyro_offset_ok(refmav):
+        print("Bad reference gyros - rebooting")
+        ref.send('\nreboot\n')
+        util.discard_messages(refmav)
+        time.sleep(6)
+        ref.send('\n')
+        util.wait_heartbeat(refmav,timeout=20)
+        if not ref_gyro_offset_ok(refmav):
+            util.failure("Bad reference gyro - FAILED")
+
+    print("Setting reference safety off")
+    util.safety_off(refmav)
     
     try:
         test = mav_test.mav_test(testlog)
-        util.wait_prompt(test)
         
         print("CONNECTING MAVLINK TO TEST BOARD")
         testmav = mavutil.mavlink_connection('127.0.0.1:14551', robust_parsing=True)
-        util.wait_heartbeat(testmav)
+        util.wait_heartbeat(testmav, timeout=20)
+        util.wait_mode(testmav, IDLE_MODES)
     except Exception as ex:
         util.show_error('Connecting to test board', ex, testlog)
 

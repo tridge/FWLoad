@@ -81,10 +81,12 @@ def check_power(ref, refmav, test, testmav):
     if abs(ref_vservo - test_vservo) > VOLTAGE_TOLERANCE:
         util.failure("Vservo error %.2f should be %.2f" % (test_vservo, ref_vservo))
 
-    ref_flags  = util.wait_field(refmav, 'POWER_STATUS', 'flags')
     test_flags = util.wait_field(testmav, 'POWER_STATUS', 'flags')
-    if ref_flags != test_flags:
-        util.failure("power flags error %u should be %u" % (ref_flags, test_flags))
+    pflags = mavutil.mavlink.MAV_POWER_STATUS_BRICK_VALID
+    pflags |= mavutil.mavlink.MAV_POWER_STATUS_SERVO_VALID
+    pflags |= mavutil.mavlink.MAV_POWER_STATUS_USB_CONNECTED
+    if test_flags != pflags:
+        util.failure("power flags error %u should be %u" % (test_flags, pflags))
         
     print("Voltages OK")
         

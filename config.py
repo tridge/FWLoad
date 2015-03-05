@@ -5,8 +5,8 @@ config for factory test rig
 from math import *
 
 GDB="arm-none-eabi-gdb"
-FMU_BMAGIC_SERIAL="B5DEADF0"
-IO_BMAGIC_SERIAL="B5DFADF1"
+FMU_BMAGIC_SERIAL="B5D9B0CD"
+IO_BMAGIC_SERIAL="B5DBB0CE"
 
 FMU_JTAG="/dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_%s-if00" % FMU_BMAGIC_SERIAL
 IO_JTAG="/dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_%s-if00" % IO_BMAGIC_SERIAL
@@ -66,12 +66,12 @@ TILT_TOLERANCE3 = 2.0
 # frame. The pitch channel is pitch when in the home position
 
 # yaw in body frame
-YAW_CHANNEL = 5
+YAW_CHANNEL = 2
 # +100 change == -20 degrees
 YAW_SCALE = -22.0 / 100
 
 # pitch in earth frame
-PITCH_CHANNEL = 6
+PITCH_CHANNEL = 1
 # +100 change == -34 degrees
 PITCH_SCALE = -34.0/100
 
@@ -94,11 +94,11 @@ class Rotation(object):
         self.pitch = pitch
 
 ROTATIONS = {
-    'level' : Rotation(1272, 1687,    0,    0),
-    'right' : Rotation(855,  1420,   90,    0),
-    'left'  : Rotation(1660, 1420,  -90,    0),
-    'up'    : Rotation(1260, 1420,  None,  90),
-    'down'  : Rotation(1274, 1950,  None, -90),
-    'back'  : Rotation(1255, 1180,  180,    0),
-    'slant' : Rotation(1097, 1563,   30,   30)
+    'level' : Rotation(1272, 1664,    0,    0),
+    'right' : Rotation(853,  1403,   90,    0),
+    'left'  : Rotation(1669, 1398,  -90,    0),
+    'up'    : Rotation(1260, 1400,  None,  90),
+    'down'  : Rotation(1272, 1912,  None, -90),
+    'back'  : Rotation(1254, 1155,  180,    0),
+    'slant' : Rotation(1094, 1584,   30,   30)
     }

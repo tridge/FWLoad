@@ -119,6 +119,9 @@ def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     '''run accelcal'''
     print("STARTING ACCEL CALIBRATION")
 
+    # turn safety off again (for loss of USB packets)
+    util.safety_off(refmav)
+
     # use zero trims on reference board
     util.param_set(ref, 'AHRS_TRIM_X', 0)
     util.param_set(ref, 'AHRS_TRIM_Y', 0)
@@ -148,14 +151,27 @@ def ref_gyro_offset_ok(refmav):
     ref_ofs = refmav.recv_match(type='SENSOR_OFFSETS', blocking=True, timeout=5)
     if ref_ofs is None:
         return False
-    return (abs(degrees(ref_ofs.gyro_cal_x)) <= REF_GYRO_TOLERANCE and
-            abs(degrees(ref_ofs.gyro_cal_y)) <= REF_GYRO_TOLERANCE and
-            abs(degrees(ref_ofs.gyro_cal_z)) <= REF_GYRO_TOLERANCE)
+    gyros = Vector3(degrees(ref_ofs.gyro_cal_x),
+                    degrees(ref_ofs.gyro_cal_y),
+                    degrees(ref_ofs.gyro_cal_z))
+
+    print("Gyro reference %.2f" % gyros.length())
+    return gyros.length() < REF_GYRO_TOLERANCE
+    
 
 def accel_calibrate():
     '''run full accel calibration'''
     reflog = StringIO()
     testlog = StringIO()
+
+    util.kill_processes(['mavproxy.py', GDB])
+    print("Starting accel cal at %s" % time.ctime())
+
+    ref = None
+    test = None
+    refmav = None
+    testmav = None
+    
     try:
         ref = mav_reference.mav_reference(reflog)
 
@@ -164,20 +180,30 @@ def accel_calibrate():
         util.wait_heartbeat(refmav)
         util.wait_mode(refmav, IDLE_MODES)
     except Exception as ex:
+        util.mav_close(ref, refmav, test, testmav)
         util.show_error('Connecting to reference board', ex, reflog)
 
-    if not ref_gyro_offset_ok(refmav):
-        print("Bad reference gyros - rebooting")
-        ref.send('\nreboot\n')
-        util.discard_messages(refmav)
-        time.sleep(6)
-        ref.send('\n')
-        util.wait_heartbeat(refmav,timeout=20)
+    try:
         if not ref_gyro_offset_ok(refmav):
-            util.failure("Bad reference gyro - FAILED")
+            print("Bad reference gyros - rebooting")
+            ref.send('\nreboot\n')
+            util.discard_messages(refmav)
+            time.sleep(6)
+            ref.send('\n')
+            util.wait_heartbeat(refmav,timeout=20)
+            if not ref_gyro_offset_ok(refmav):
+                util.mav_close(ref, refmav, test, testmav)
+                util.failure("Bad reference gyro - FAILED")
+    except Exception as ex:
+        util.mav_close(ref, refmav, test, testmav)
+        util.show_error('testing reference gyros', ex)
 
     print("Setting reference safety off")
-    util.safety_off(refmav)
+    try:
+        util.safety_off(refmav)
+    except Exception as ex:
+        util.mav_close(ref, refmav, test, testmav)
+        util.show_error("unable to set safety off", ex)
     
     try:
         test = mav_test.mav_test(testlog)
@@ -187,15 +213,25 @@ def accel_calibrate():
         util.wait_heartbeat(testmav, timeout=20)
         util.wait_mode(testmav, IDLE_MODES)
     except Exception as ex:
+        util.mav_close(ref, refmav, test, testmav)
         util.show_error('Connecting to test board', ex, testlog)
 
-    accel_calibrate_run(ref, refmav, test, testmav, testlog)
-    test_sensors.check_accel_cal(ref, refmav, test, testmav)
-    test_sensors.check_gyro_cal(ref, refmav, test, testmav)
-    print("Accel calibration complete")
+    try:
+        accel_calibrate_run(ref, refmav, test, testmav, testlog)
+        test_sensors.check_accel_cal(ref, refmav, test, testmav)
+        test_sensors.check_gyro_cal(ref, refmav, test, testmav)
+    except Exception as ex:
+        util.mav_close(ref, refmav, test, testmav)
+        util.show_error('Accel calibration complete', ex)
 
-    # we run the sensor checks from here to avoid re-opening the links
-    test_sensors.check_all_sensors(ref, refmav, test, testmav)
+    try:
+        # we run the sensor checks from here to avoid re-opening the links
+        test_sensors.check_all_sensors(ref, refmav, test, testmav)
+    except Exception as ex:
+        util.mav_close(ref, refmav, test, testmav)
+        util.show_error('Test sensors failed', ex)
+
+    util.mav_close(ref, refmav, test, testmav)
 
 def accel_calibrate_retries(retries=4):
     '''run full accel calibration with retries

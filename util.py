@@ -22,9 +22,11 @@ def show_tail(logstr):
         print(lines[len(lines)-n+i].rstrip())
     logstr.seek(ofs)
 
-def show_error(test, ex, logstr):
+def show_error(test, ex, logstr=None):
     '''display an error then raise an exception'''
-    show_tail(logstr)
+    print("exception: %s" % ex)
+    if logstr is not None:
+        show_tail(logstr)
     raise(FirmwareLoadError("FAILED: %s" % test))
 
 def wait_devices(devices, timeout=10):
@@ -136,9 +138,55 @@ def safety_off(mav):
 def wait_mode(mav, modes, timeout=10):
     '''wait for one of a set of flight modes'''
     start_time = time.time()
+    last_mode = None
     while time.time() < start_time+timeout:
         wait_heartbeat(mav, timeout=2)
-        print("Flightmode %s" % mav.flightmode)
+        if mav.flightmode != last_mode:
+            print("Flightmode %s" % mav.flightmode)
+            last_mode = mav.flightmode
         if mav.flightmode in modes:
             return
     failure("Failed to get mode from %s" % modes)
+
+class Tee(object):
+    '''log to stdout and a file. Like unix tee command
+    See http://stackoverflow.com/questions/616645/how-do-i-duplicate-sys-stdout-to-a-log-file-in-python
+    '''
+    def __init__(self, name):
+        self.file = open(name, 'w')
+        self.stdout = sys.stdout
+        sys.stdout = self
+    def __del__(self):
+        self.file.close()
+        sys.stdout = self.stdout
+    def write(self, data):
+        self.file.write(data)
+        self.stdout.write(data)
+        self.flush()
+    def flush(self):
+        self.file.flush()
+        self.stdout.flush()
+
+
+def mkdir_p(dir):
+    '''like mkdir -p'''
+    if not dir:
+        return
+    if dir.endswith("/"):
+        mkdir_p(dir[:-1])
+        return
+    if os.path.isdir(dir):
+        return
+    mkdir_p(os.path.dirname(dir))
+    os.mkdir(dir)
+
+def mav_close(ref, refmav, test, testmav):
+    '''close UDP mavlink connections'''
+    if ref is not None:
+        ref.close()
+    if test is not None:
+        test.close()
+    if refmav is not None:
+        refmav.close()
+    if testmav is not None:
+        testmav.close()

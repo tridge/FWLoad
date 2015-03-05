@@ -5,11 +5,13 @@ connect to nsh console
 
 import pexpect, sys
 from config import *
+import logging
 
 def mav_reference(reflog=None, extra_args=None):
     '''connect to reference board'''
     print("CONNECTING TO REFERENCE BOARD")
-    cmd = "mavproxy.py --master %s --out 127.0.0.1:14550 --aircraft RefBoard" % USB_DEV_REFERENCE
+    logfile = logging.new_tlog("RefBoard")
+    cmd = "mavproxy.py --master %s --out 127.0.0.1:14550 --logfile %s" % (USB_DEV_REFERENCE, logfile)
     if REMOTE_MONITOR:
         cmd += " --out %s" % REMOTE_MONITOR
     if extra_args:

@@ -5,11 +5,13 @@ connect to nsh console
 
 import pexpect, sys
 from config import *
+import logging
 
 def mav_test(reflog=None):
     '''connect to test board'''
     print("CONNECTING TO TEST BOARD")
-    cmd = "mavproxy.py --master %s --out 127.0.0.1:14551 --aircraft TestBoard" % USB_DEV_TEST
+    logfile = logging.new_tlog("TestBoard")
+    cmd = "mavproxy.py --master %s --out 127.0.0.1:14551 --logfile %s" % (USB_DEV_TEST, logfile)
     if REMOTE_MONITOR2:
         cmd += " --out %s" % REMOTE_MONITOR2
     return pexpect.spawn(cmd, logfile=reflog, timeout=10)

@@ -9,6 +9,7 @@ import power_control
 import time
 import util
 import sys, os
+import logging
 import colour_text
 from config import *
 
@@ -19,10 +20,55 @@ from argparse import ArgumentParser
 parser = ArgumentParser(description=__doc__)
 
 parser.add_argument("--test", dest="test", default=False, action='store_true', help="run in test loop")
+parser.add_argument("--once", dest="once", default=False, action='store_true', help="run one install only")
+parser.add_argument("--nofw", dest="nofw", default=False, action='store_true', help="don't reload firmware")
 args = parser.parse_args()
 
 
 colour_text.print_blue("Starting up")
+
+def factory_install():
+    '''main factory installer'''
+    start_time = time.time()
+
+    colour_text.clear_screen()
+
+    logdir = logging.new_log_dir()
+
+    print("Logging to %s" % logdir)
+    tee = util.Tee(os.path.join(logdir, "run.log"))
+
+    colour_text.print_blue('''
+=======================
+| Starting installation
+=======================
+''')
+
+    print(time.ctime())
+    
+    if not args.nofw and not jtag.load_all_firmwares(retries=3):
+        colour_text.print_fail('''
+======================================
+| FAILED: JTAG firmware install failed
+======================================
+''')
+        return False
+    
+    if not accelcal.accel_calibrate_retries(retries=4):
+        colour_text.print_fail('''
+==========================================
+| FAILED: accelerometer calibration failed
+==========================================
+''')
+        return False
+
+    # all OK
+    colour_text.print_green('''
+================================================
+| PASSED: Factory install complete (%u seconds)
+================================================
+''' %  (time.time() - start_time))
+    return True
 
 while True:
 
@@ -40,35 +86,7 @@ while True:
     while not util.wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
         print("waiting for power up....")
 
-    start_time = time.time()
+    ret = factory_install()
 
-    colour_text.clear_screen()
-
-    colour_text.print_blue('''
-=======================
-| Starting installation
-=======================
-''')
-    
-    if not jtag.load_all_firmwares(retries=3):
-        colour_text.print_fail('''
-======================================
-| FAILED: JTAG firmware install failed
-======================================
-''')
-        continue
-    
-    if not accelcal.accel_calibrate_retries(retries=4):
-        colour_text.print_fail('''
-==========================================
-| FAILED: accelerometer calibration failed
-==========================================
-''')
-        continue
-
-    # all OK
-    colour_text.print_green('''
-================================================
-| PASSED: Factory install complete (%u seconds)
-================================================
-''' %  (time.time() - start_time))
+    if args.once:
+        sys.exit(int(not ret))

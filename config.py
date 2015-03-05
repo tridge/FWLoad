@@ -17,7 +17,7 @@ FW_IO="FW/px4io.elf"
 BL_IO="FW/px4io_bl.elf"
 
 FW_FMU="FW/firmware-test.elf"
-BL_FMU="FW/px4fmuv3_bl.elf"
+BL_FMU="FW/px4fmuv2_bl.elf"
 
 # the expected CPU IDs shown by gdb. This allows us to tell if the
 # jtag connections are the right way around
@@ -46,6 +46,10 @@ ROTATION_TOLERANCE = 5.0
 # tolerance of quiescent state in degrees/second. This is how still
 # the jig needs to be between movements of the servos
 GYRO_TOLERANCE = 0.2
+
+# if gyro offsets are off by more than this value then the ref board was probably moving
+# and we need to power cycle
+REF_GYRO_TOLERANCE = 6.0
 
 # tolerances for the various sensors when testing against the
 # reference board
@@ -77,7 +81,7 @@ PITCH_SCALE = -34.0/100
 
 # acceptable modes when the test board is idle. This works for both
 # plane and copter
-IDLE_MODES = ["RTL>","CIRCLE>","MANUAL>","STABILIZE>"]
+IDLE_MODES = ["RTL","CIRCLE","MANUAL","STABILIZE"]
 
 
 # servo positions for different orientations of boards in the test jig

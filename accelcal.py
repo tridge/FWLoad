@@ -162,7 +162,7 @@ def accel_calibrate():
 
         print("CONNECTING MAVLINK TO REFERENCE BOARD")
         refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
-        refmav.wait_heartbeat()
+        util.wait_heartbeat(refmav)
     except Exception as ex:
         util.show_error('Connecting to reference board', ex, reflog)
     
@@ -172,7 +172,7 @@ def accel_calibrate():
         
         print("CONNECTING MAVLINK TO TEST BOARD")
         testmav = mavutil.mavlink_connection('127.0.0.1:14551', robust_parsing=True)
-        testmav.wait_heartbeat()
+        util.wait_heartbeat(testmav)
     except Exception as ex:
         util.show_error('Connecting to test board', ex, testlog)
 

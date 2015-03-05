@@ -187,7 +187,7 @@ if __name__ == '__main__':
     ref.expect(['MANUAL>'])
 
     refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
-    refmav.wait_heartbeat()
+    util.wait_heartbeat(refmav)
 
     print("Rotating to %s" % args.rotation)
     set_rotation(ref, refmav, args.rotation, wait=args.wait)

@@ -127,3 +127,8 @@ def kill_processes(process_list):
     from subprocess import call
     for p in process_list:
         call(['/usr/bin/pkill', '-9', '-f', p])
+
+def wait_heartbeat(mav, timeout=10):
+    '''wait for a heartbeat'''
+    if mav.recv_match(type='HEARTBEAT', blocking=True, timeout=timeout) is None:
+        failure("Failed to get heartbeat")

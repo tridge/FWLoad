@@ -7,7 +7,7 @@ import pexpect, sys
 from config import *
 import logging
 
-def mav_test(reflog=None):
+def mav_test(testlog=None):
     '''connect to test board'''
     print("CONNECTING TO TEST BOARD")
     logfile = logging.new_tlog("TestBoard")
@@ -15,7 +15,7 @@ def mav_test(reflog=None):
     cmd = "mavproxy.py --master %s --out 127.0.0.1:14551 --logfile %s" % (USB_DEV_TEST, logfile)
     if REMOTE_MONITOR2:
         cmd += " --out %s" % REMOTE_MONITOR2
-    return pexpect.spawn(cmd, logfile=reflog, timeout=10)
+    return pexpect.spawn(cmd, logfile=testlog, timeout=10)
 
 if __name__ == '__main__':
     ref = mav_test()

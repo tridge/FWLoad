@@ -166,6 +166,61 @@ def set_rotation(ref, refmav, rotation, wait=True):
         util.failure("Failed to reach target attitude")
     return refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
 
+def gyro_integrate(ref, refmav, test, testmav):
+    '''test gyros by integrating while rotating to the given rotations'''
+    util.param_set(ref, 'SR0_RAW_SENS', 10)
+    util.param_set(test, 'SR0_RAW_SENS', 10)
+
+    print("Starting gyro integration")
+    util.discard_messages(refmav)
+    util.discard_messages(testmav)
+
+    util.set_servo(refmav, YAW_CHANNEL, ROTATIONS['level'].chan1+200)
+    util.set_servo(refmav, PITCH_CHANNEL, ROTATIONS['level'].chan2+200)
+
+    start_time = time.time()
+    ref_tstart = None
+    test_tstart = [None]*3
+    ref_sum = Vector3()
+    test_sum = [Vector3(), Vector3(), Vector3()]
+    msgs = { 'RAW_IMU' : 0, 'SCALED_IMU2' : 1, 'SCALED_IMU3' : 2 }
+    while time.time() < start_time+20:
+        imu = refmav.recv_match(type='RAW_IMU', blocking=False)
+        if imu is not None:
+            gyro = util.gyro_vector(imu)
+            tnow = imu.time_usec*1.0e-6
+            if ref_tstart is not None:
+                deltat = tnow - ref_tstart
+                ref_sum += gyro * deltat
+            ref_tstart = tnow
+            if time.time() - start_time > 2 and gyro.length() < GYRO_TOLERANCE*2:
+                break
+        imu = testmav.recv_match(type=msgs.keys(), blocking=False)
+        if imu is not None:
+            idx = msgs[imu.get_type()]
+            gyro = util.gyro_vector(imu)
+            if imu.get_type().startswith("SCALED_IMU"):
+                tnow = imu.time_boot_ms*1.0e-3
+            else:
+                tnow = imu.time_usec*1.0e-6
+            if test_tstart[idx] is not None:
+                deltat = tnow - test_tstart[idx]
+                test_sum[idx] += gyro * deltat
+            test_tstart[idx] = tnow
+    print("Gyro ref  sums: ", ref_sum)
+    print("Gyro test sum1: ", test_sum[0])
+    print("Gyro test sum2: ", test_sum[1])
+    print("Gyro test sum3: ", test_sum[2])
+    for idx in range(3):
+        err = test_sum[idx] - ref_sum
+        if abs(err.x) > GYRO_SUM_TOLERANCE:
+            util.failure("X gyro %u error: %.1f" % (idx, err.x))
+        if abs(err.y) > 5:
+            util.failure("Y gyro %u error: %.1f" % (idx, err.y))
+        if abs(err.z) > 5:
+            util.failure("Z gyro %u error: %.1f" % (idx, err.z))
+
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser(description=__doc__)

@@ -157,15 +157,30 @@ class Tee(object):
         self.stdout = sys.stdout
         sys.stdout = self
     def __del__(self):
-        self.file.close()
-        sys.stdout = self.stdout
+        self.close()
     def write(self, data):
-        self.file.write(data)
-        self.stdout.write(data)
+        if self.file is not None:
+            self.file.write(data)
+        if self.stdout is not None:
+            self.stdout.write(data)
+        else:
+            sys.stdout.write(data)
         self.flush()
     def flush(self):
-        self.file.flush()
-        self.stdout.flush()
+        if self.file is not None:
+            self.file.flush()
+        if self.stdout is not None:
+            self.stdout.flush()
+        else:
+            sys.stdout.flush()
+    def close(self):
+        if self.file is not None:
+            self.file.close()
+        if self.stdout is not None:
+            sys.stdout = self.stdout
+        self.stdout = None
+        self.file = None
+        
 
 
 def mkdir_p(dir):
@@ -190,3 +205,11 @@ def mav_close(ref, refmav, test, testmav):
         refmav.close()
     if testmav is not None:
         testmav.close()
+
+
+def gyro_vector(raw_imu):
+    '''return a gyro vector in degrees/sec from a raw_imu message'''
+    from pymavlink.rotmat import Vector3
+    return Vector3(degrees(raw_imu.xgyro*0.001),
+                   degrees(raw_imu.ygyro*0.001),
+                   degrees(raw_imu.zgyro*0.001))

@@ -52,6 +52,7 @@ def factory_install():
 | FAILED: JTAG firmware install failed
 ======================================
 ''')
+        tee.close()
         return False
     
     if not accelcal.accel_calibrate_retries(retries=4):
@@ -60,6 +61,7 @@ def factory_install():
 | FAILED: accelerometer calibration failed
 ==========================================
 ''')
+        tee.close()
         return False
 
     # all OK
@@ -68,6 +70,7 @@ def factory_install():
 | PASSED: Factory install complete (%u seconds)
 ================================================
 ''' %  (time.time() - start_time))
+    tee.close()
     return True
 
 while True:

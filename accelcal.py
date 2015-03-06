@@ -57,7 +57,11 @@ def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
     pitch_error2 = (test_pitch2 - ref_pitch)
     pitch_error3 = (test_pitch3 - ref_pitch)
 
-    # now rotate to pitch 90 to measure the yaw error
+    # rotate to up position while integrating gyros to test
+    # all gyros are working
+    rotate.gyro_integrate(ref, refmav, test, testmav)
+
+    # finish rotation to pitch 90 to measure the yaw error
     rotate.set_rotation(ref, refmav, 'up')
 
     util.discard_messages(refmav)
@@ -120,6 +124,7 @@ def accel_calibrate_run(ref, refmav, test, testmav, testlog):
     print("STARTING ACCEL CALIBRATION")
 
     # turn safety off again (for loss of USB packets)
+    rotate.set_rotation(ref, refmav, 'level', wait=False)
     util.safety_off(refmav)
 
     # use zero trims on reference board
@@ -174,14 +179,24 @@ def accel_calibrate():
     
     try:
         ref = mav_reference.mav_reference(reflog)
+    except Exception as ex:
+        util.mav_close(ref, refmav, test, testmav)
+        util.show_error('Connecting to reference board1', ex, reflog)
 
+    try:
+        test = mav_test.mav_test(testlog)
+    except Exception as ex:
+        util.mav_close(ref, refmav, test, testmav)
+        util.show_error('Connecting to test board1', ex, testlog)
+
+    try:
         print("CONNECTING MAVLINK TO REFERENCE BOARD")
-        refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
-        util.wait_heartbeat(refmav)
+        refmav = mavutil.mavlink_connection('127.0.0.1:14550')
+        util.wait_heartbeat(refmav, timeout=30)
         util.wait_mode(refmav, IDLE_MODES)
     except Exception as ex:
         util.mav_close(ref, refmav, test, testmav)
-        util.show_error('Connecting to reference board', ex, reflog)
+        util.show_error('Connecting to reference board2', ex, reflog)
 
     try:
         if not ref_gyro_offset_ok(refmav):
@@ -190,7 +205,7 @@ def accel_calibrate():
             util.discard_messages(refmav)
             time.sleep(6)
             ref.send('\n')
-            util.wait_heartbeat(refmav,timeout=20)
+            util.wait_heartbeat(refmav,timeout=30)
             if not ref_gyro_offset_ok(refmav):
                 util.mav_close(ref, refmav, test, testmav)
                 util.failure("Bad reference gyro - FAILED")
@@ -200,21 +215,20 @@ def accel_calibrate():
 
     print("Setting reference safety off")
     try:
+        rotate.set_rotation(ref, refmav, 'level', wait=False)
         util.safety_off(refmav)
     except Exception as ex:
         util.mav_close(ref, refmav, test, testmav)
         util.show_error("unable to set safety off", ex)
     
     try:
-        test = mav_test.mav_test(testlog)
-        
         print("CONNECTING MAVLINK TO TEST BOARD")
-        testmav = mavutil.mavlink_connection('127.0.0.1:14551', robust_parsing=True)
-        util.wait_heartbeat(testmav, timeout=20)
+        testmav = mavutil.mavlink_connection('127.0.0.1:14551')
+        util.wait_heartbeat(testmav, timeout=30)
         util.wait_mode(testmav, IDLE_MODES)
     except Exception as ex:
         util.mav_close(ref, refmav, test, testmav)
-        util.show_error('Connecting to test board', ex, testlog)
+        util.show_error('Connecting to test board2', ex, testlog)
 
     try:
         accel_calibrate_run(ref, refmav, test, testmav, testlog)

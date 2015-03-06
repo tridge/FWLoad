@@ -4,7 +4,6 @@ run an accelcal on the test jig
 '''
 
 import pexpect, sys, time
-from StringIO import StringIO
 from config import *
 import util
 import rotate
@@ -13,31 +12,31 @@ import test_sensors
 import mav_reference
 import mav_test
 import power_control
+import connection
 from pymavlink.rotmat import Matrix3, Vector3
 
-def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
+def adjust_ahrs_trim(conn, level_attitude):
     '''
     force the AHRS trim to zero, which removes the effect of the jig not being quite
     level. This is only incorrect if the accels are not aligned on the board, which
     we check in check_accel_cal later
     '''
-    util.param_set(test, 'AHRS_TRIM_X', 0)
-    util.param_set(test, 'AHRS_TRIM_Y', 0)
+    util.param_set(conn.test, 'AHRS_TRIM_X', 0)
+    util.param_set(conn.test, 'AHRS_TRIM_Y', 0)
 
     # get the board level
-    rotate.set_rotation(ref, refmav, 'level')
+    rotate.set_rotation(conn, 'level')
 
     # we need to work out what the error in attitude of the 3 IMUs on the test jig is
     # to do that we start with it level, and measure the roll/pitch as compared to the reference
     # then we rotate it to pitch 90 and measure the yaw error
 
     # check all accels are in range
-    util.discard_messages(refmav)
-    util.discard_messages(testmav)
-    ref_imu = refmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
-    test_imu1 = testmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
-    test_imu2 = testmav.recv_match(type='SCALED_IMU2', blocking=True, timeout=3)
-    test_imu3 = testmav.recv_match(type='SCALED_IMU3', blocking=True, timeout=3)
+    conn.discard_messages()
+    ref_imu = conn.refmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
+    test_imu1 = conn.testmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
+    test_imu2 = conn.testmav.recv_match(type='SCALED_IMU2', blocking=True, timeout=3)
+    test_imu3 = conn.testmav.recv_match(type='SCALED_IMU3', blocking=True, timeout=3)
     if ref_imu is None:
         util.failure("Lost comms to reference board in ahrs trim")
     if test_imu1 is None or test_imu2 is None or test_imu3 is None:
@@ -59,17 +58,16 @@ def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
 
     # rotate to up position while integrating gyros to test
     # all gyros are working
-    rotate.gyro_integrate(ref, refmav, test, testmav)
+    rotate.gyro_integrate(conn)
 
     # finish rotation to pitch 90 to measure the yaw error
-    rotate.set_rotation(ref, refmav, 'up')
+    rotate.set_rotation(conn, 'up')
 
-    util.discard_messages(refmav)
-    util.discard_messages(testmav)
-    ref_imu = refmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
-    test_imu1 = testmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
-    test_imu2 = testmav.recv_match(type='SCALED_IMU2', blocking=True, timeout=3)
-    test_imu3 = testmav.recv_match(type='SCALED_IMU3', blocking=True, timeout=3)
+    conn.discard_messages()
+    ref_imu = conn.refmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
+    test_imu1 = conn.testmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
+    test_imu2 = conn.testmav.recv_match(type='SCALED_IMU2', blocking=True, timeout=3)
+    test_imu3 = conn.testmav.recv_match(type='SCALED_IMU3', blocking=True, timeout=3)
     if ref_imu is None:
         util.failure("Lost comms to reference board in ahrs trim")
     if test_imu1 is None or test_imu2 is None or test_imu3 is None:
@@ -77,7 +75,7 @@ def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
     ref_accel = Vector3(ref_imu.xacc, ref_imu.yacc, ref_imu.zacc)*9.81*0.001
 
     # start rotating back to level ready for the end of the test
-    rotate.set_rotation(ref, refmav, 'level', wait=False)
+    rotate.set_rotation(conn, 'level', wait=False)
 
     # when pointing straight up the roll_esimtate() actually estimates yaw error in body frame
     ref_yaw = util.roll_estimate(ref_imu)
@@ -119,133 +117,61 @@ def adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude):
         abs(yaw_error3) > TILT_TOLERANCE3):
         util.failure("Test board yaw error")
 
-def accel_calibrate_run(ref, refmav, test, testmav, testlog):
+def accel_calibrate_run(conn):
     '''run accelcal'''
     print("STARTING ACCEL CALIBRATION")
 
     # turn safety off again (for loss of USB packets)
-    rotate.set_rotation(ref, refmav, 'level', wait=False)
-    util.safety_off(refmav)
+    rotate.set_rotation(conn, 'level', wait=False)
+    util.safety_off(conn.refmav)
 
     # use zero trims on reference board
-    util.param_set(ref, 'AHRS_TRIM_X', 0)
-    util.param_set(ref, 'AHRS_TRIM_Y', 0)
+    util.param_set(conn.ref, 'AHRS_TRIM_X', 0)
+    util.param_set(conn.ref, 'AHRS_TRIM_Y', 0)
 
     level_attitude = None
-    test.send("accelcal\n")
+    conn.test.send("accelcal\n")
     for rotation in ['level', 'left', 'right', 'up', 'down', 'back']:
         try:
-            test.expect("Place vehicle")
-            test.expect("and press any key")
+            conn.test.expect("Place vehicle")
+            conn.test.expect("and press any key")
         except Exception as ex:
-            util.show_tail(testlog)
+            util.show_tail(conn.testlog)
             util.failure("Failed to get place vehicle message for %s" % rotation)
-        attitude = rotate.set_rotation(ref, refmav, rotation)
+        attitude = rotate.set_rotation(conn, rotation)
         if rotation == 'level':
             level_attitude = attitude
-        test.send("\n")
-    i = test.expect(["Calibration successful","Calibration FAILED"])
+        conn.test.send("\n")
+    i = conn.test.expect(["Calibration successful","Calibration FAILED"])
     if i != 0:
-        util.show_tail(testlog)
+        util.show_tail(conn.testlog)
         util.failure("Accel calibration failed")
-    rotate.set_rotation(ref, refmav, 'level', wait=False)
-    adjust_ahrs_trim(ref, refmav, test, testmav, level_attitude)
-
-def ref_gyro_offset_ok(refmav):
-    '''check if ref gyro offsets are in range'''
-    ref_ofs = refmav.recv_match(type='SENSOR_OFFSETS', blocking=True, timeout=5)
-    if ref_ofs is None:
-        return False
-    gyros = Vector3(degrees(ref_ofs.gyro_cal_x),
-                    degrees(ref_ofs.gyro_cal_y),
-                    degrees(ref_ofs.gyro_cal_z))
-
-    print("Gyro reference %.2f" % gyros.length())
-    return gyros.length() < REF_GYRO_TOLERANCE
-    
+    rotate.set_rotation(conn, 'level', wait=False)
+    adjust_ahrs_trim(conn, level_attitude)
 
 def accel_calibrate():
     '''run full accel calibration'''
-    reflog = StringIO()
-    testlog = StringIO()
 
-    util.kill_processes(['mavproxy.py', GDB])
     print("Starting accel cal at %s" % time.ctime())
 
-    ref = None
-    test = None
-    refmav = None
-    testmav = None
-    
-    try:
-        ref = mav_reference.mav_reference(reflog)
-    except Exception as ex:
-        util.mav_close(ref, refmav, test, testmav)
-        util.show_error('Connecting to reference board1', ex, reflog)
+    conn = connection.Connection()
 
     try:
-        test = mav_test.mav_test(testlog)
+        accel_calibrate_run(conn)
+        test_sensors.check_accel_cal(conn)
+        test_sensors.check_gyro_cal(conn)
     except Exception as ex:
-        util.mav_close(ref, refmav, test, testmav)
-        util.show_error('Connecting to test board1', ex, testlog)
-
-    try:
-        print("CONNECTING MAVLINK TO REFERENCE BOARD")
-        refmav = mavutil.mavlink_connection('127.0.0.1:14550')
-        util.wait_heartbeat(refmav, timeout=30)
-        util.wait_mode(refmav, IDLE_MODES)
-    except Exception as ex:
-        util.mav_close(ref, refmav, test, testmav)
-        util.show_error('Connecting to reference board2', ex, reflog)
-
-    try:
-        if not ref_gyro_offset_ok(refmav):
-            print("Bad reference gyros - rebooting")
-            ref.send('\nreboot\n')
-            util.discard_messages(refmav)
-            time.sleep(6)
-            ref.send('\n')
-            util.wait_heartbeat(refmav,timeout=30)
-            if not ref_gyro_offset_ok(refmav):
-                util.mav_close(ref, refmav, test, testmav)
-                util.failure("Bad reference gyro - FAILED")
-    except Exception as ex:
-        util.mav_close(ref, refmav, test, testmav)
-        util.show_error('testing reference gyros', ex)
-
-    print("Setting reference safety off")
-    try:
-        rotate.set_rotation(ref, refmav, 'level', wait=False)
-        util.safety_off(refmav)
-    except Exception as ex:
-        util.mav_close(ref, refmav, test, testmav)
-        util.show_error("unable to set safety off", ex)
-    
-    try:
-        print("CONNECTING MAVLINK TO TEST BOARD")
-        testmav = mavutil.mavlink_connection('127.0.0.1:14551')
-        util.wait_heartbeat(testmav, timeout=30)
-        util.wait_mode(testmav, IDLE_MODES)
-    except Exception as ex:
-        util.mav_close(ref, refmav, test, testmav)
-        util.show_error('Connecting to test board2', ex, testlog)
-
-    try:
-        accel_calibrate_run(ref, refmav, test, testmav, testlog)
-        test_sensors.check_accel_cal(ref, refmav, test, testmav)
-        test_sensors.check_gyro_cal(ref, refmav, test, testmav)
-    except Exception as ex:
-        util.mav_close(ref, refmav, test, testmav)
+        conn.close()
         util.show_error('Accel calibration complete', ex)
 
     try:
         # we run the sensor checks from here to avoid re-opening the links
-        test_sensors.check_all_sensors(ref, refmav, test, testmav)
+        test_sensors.check_all_sensors(conn)
     except Exception as ex:
-        util.mav_close(ref, refmav, test, testmav)
+        conn.close()
         util.show_error('Test sensors failed', ex)
 
-    util.mav_close(ref, refmav, test, testmav)
+    conn.close()
 
 def accel_calibrate_retries(retries=4):
     '''run full accel calibration with retries

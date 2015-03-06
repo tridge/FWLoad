@@ -27,11 +27,11 @@ def get_log_dir():
     global current_logdir
     return current_logdir
 
-def new_tlog(basename):
+def new_tlog(basename, extension='tlog'):
     '''get a new tlog name in log directory'''
     global current_logdir
     if current_logdir is None:
-        return basename + ".tlog"
+        return basename + "." + extension
     for i in range(1, 1000000):
         tlog = os.path.join(current_logdir, '%s-%u.tlog' % (basename, i))
         if not os.path.exists(tlog):

@@ -11,6 +11,7 @@ from pymavlink import mavutil
 from pymavlink.rotmat import Matrix3, Vector3
 from pymavlink.quaternion import Quaternion
 import mav_reference
+import connection
 
 def quat_division(quat, rquat):
     '''quaternion division'''
@@ -87,14 +88,14 @@ def wait_quiescent(refmav):
     return attitude
             
 
-def optimise_attitude(ref, refmav, rotation, tolerance):
+def optimise_attitude(conn, rotation, tolerance):
     '''optimise attitude using servo changes'''
     expected_roll = ROTATIONS[rotation].roll
     expected_pitch = ROTATIONS[rotation].pitch
     chan1 = ROTATIONS[rotation].chan1
     chan2 = ROTATIONS[rotation].chan2
 
-    attitude = wait_quiescent(refmav)
+    attitude = wait_quiescent(conn.refmav)
     time_start = time.time()
 
     # we always do at least 2 tries. This means the attitude accuracy
@@ -132,15 +133,15 @@ def optimise_attitude(ref, refmav, rotation, tolerance):
         if chan1 < 700 or chan1 > 2300 or chan2 < 700 or chan2 > 2300:
             print("servos out of range - failed")
             return False
-        util.set_servo(refmav, YAW_CHANNEL, chan1)
-        util.set_servo(refmav, PITCH_CHANNEL, chan2)
-        attitude = wait_quiescent(refmav)
+        util.set_servo(conn.refmav, YAW_CHANNEL, chan1)
+        util.set_servo(conn.refmav, PITCH_CHANNEL, chan2)
+        attitude = wait_quiescent(conn.refmav)
         tries += 1
         
     print("timed out rotating to %s" % rotation)
     return False
 
-def set_rotation(ref, refmav, rotation, wait=True):
+def set_rotation(conn, rotation, wait=True):
     '''set servo rotation'''
     if not rotation in ROTATIONS:
         util.failure("No rotation %s" % rotation)
@@ -148,13 +149,13 @@ def set_rotation(ref, refmav, rotation, wait=True):
     expected_pitch = ROTATIONS[rotation].pitch
 
     # start with initial settings from the table
-    util.set_servo(refmav, YAW_CHANNEL, ROTATIONS[rotation].chan1)
-    util.set_servo(refmav, PITCH_CHANNEL, ROTATIONS[rotation].chan2)
+    util.set_servo(conn.refmav, YAW_CHANNEL, ROTATIONS[rotation].chan1)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, ROTATIONS[rotation].chan2)
     if not wait:
-        return refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
+        return conn.refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
 
     time.sleep(1)
-    util.discard_messages(refmav)
+    util.discard_messages(conn.refmav)
     
     if expected_roll == 0 and expected_pitch == 0:
         tolerance = ROTATION_LEVEL_TOLERANCE
@@ -162,21 +163,20 @@ def set_rotation(ref, refmav, rotation, wait=True):
         tolerance = ROTATION_TOLERANCE
 
     # now optimise it
-    if not optimise_attitude(ref, refmav, rotation, tolerance):
+    if not optimise_attitude(conn, rotation, tolerance):
         util.failure("Failed to reach target attitude")
-    return refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
+    return conn.refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
 
-def gyro_integrate(ref, refmav, test, testmav):
+def gyro_integrate(conn):
     '''test gyros by integrating while rotating to the given rotations'''
-    util.param_set(ref, 'SR0_RAW_SENS', 10)
-    util.param_set(test, 'SR0_RAW_SENS', 10)
+    util.param_set(conn.ref, 'SR0_RAW_SENS', 10)
+    util.param_set(conn.test, 'SR0_RAW_SENS', 10)
 
     print("Starting gyro integration")
-    util.discard_messages(refmav)
-    util.discard_messages(testmav)
+    conn.discard_messages()
 
-    util.set_servo(refmav, YAW_CHANNEL, ROTATIONS['level'].chan1+200)
-    util.set_servo(refmav, PITCH_CHANNEL, ROTATIONS['level'].chan2+200)
+    util.set_servo(conn.refmav, YAW_CHANNEL, ROTATIONS['level'].chan1+200)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, ROTATIONS['level'].chan2+200)
 
     start_time = time.time()
     ref_tstart = None
@@ -185,7 +185,7 @@ def gyro_integrate(ref, refmav, test, testmav):
     test_sum = [Vector3(), Vector3(), Vector3()]
     msgs = { 'RAW_IMU' : 0, 'SCALED_IMU2' : 1, 'SCALED_IMU3' : 2 }
     while time.time() < start_time+20:
-        imu = refmav.recv_match(type='RAW_IMU', blocking=False)
+        imu = conn.refmav.recv_match(type='RAW_IMU', blocking=False)
         if imu is not None:
             gyro = util.gyro_vector(imu)
             tnow = imu.time_usec*1.0e-6
@@ -195,7 +195,7 @@ def gyro_integrate(ref, refmav, test, testmav):
             ref_tstart = tnow
             if time.time() - start_time > 2 and gyro.length() < GYRO_TOLERANCE*2:
                 break
-        imu = testmav.recv_match(type=msgs.keys(), blocking=False)
+        imu = conn.testmav.recv_match(type=msgs.keys(), blocking=False)
         if imu is not None:
             idx = msgs[imu.get_type()]
             gyro = util.gyro_vector(imu)
@@ -238,11 +238,7 @@ if __name__ == '__main__':
     ROTATION_TOLERANCE = args.tolerance
     ROTATIONS['level'].chan1 = args.yaw_zero
 
-    ref = mav_reference.mav_reference()
-    ref.expect(['MANUAL>'])
-
-    refmav = mavutil.mavlink_connection('127.0.0.1:14550', robust_parsing=True)
-    util.wait_heartbeat(refmav)
+    conn = connection.Connection(ref_only=True)
 
     print("Rotating to %s" % args.rotation)
-    set_rotation(ref, refmav, args.rotation, wait=args.wait)
+    set_rotation(conn, args.rotation, wait=args.wait)

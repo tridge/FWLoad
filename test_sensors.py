@@ -5,10 +5,10 @@ test sensors against reference board
 import util
 from config import *
 from math import *
-import mav_reference, mav_test
+import connection
 from pymavlink import mavutil
 
-def check_accel_cal(ref, refmav, test, testmav):
+def check_accel_cal(conn):
     '''check accel cal'''
 
     for idx in range(NUM_ACCELS):
@@ -18,16 +18,16 @@ def check_accel_cal(ref, refmav, test, testmav):
             n = '%u' % (idx+1)
         for axis in ['X', 'Y', 'Z']:
             pname = 'INS_ACC%sOFFS_%s' % (n, axis)
-            ofs = util.param_value(test, pname)
+            ofs = util.param_value(conn.test, pname)
             if abs(ofs) < 0.000001:
                 util.failure("%s is zero - accel %u not calibrated (offset)" % (pname, idx))
             pname = 'INS_ACC%sSCAL_%s' % (n, axis)
-            ofs = util.param_value(test, pname)
+            ofs = util.param_value(conn.test, pname)
             if abs(ofs-1.0) < 0.000001:
                 util.failure("%s is zero - accel %u not calibrated (scale)" % (pname, idx))
         print("Accel cal %u OK" % (idx+1))
 
-def check_gyro_cal(ref, refmav, test, testmav):
+def check_gyro_cal(conn):
     '''check gyro cal'''
 
     for idx in range(NUM_GYROS):
@@ -37,20 +37,20 @@ def check_gyro_cal(ref, refmav, test, testmav):
             n = '%u' % (idx+1)
         for axis in ['X', 'Y', 'Z']:
             pname = 'INS_GYR%sOFFS_%s' % (n, axis)
-            ofs = util.param_value(test, pname)
-            ofs = float(test.match.group(1))
+            ofs = util.param_value(conn.test, pname)
+            ofs = float(conn.test.match.group(1))
             if abs(ofs) < 0.000001:
                 util.failure("%s is zero - gyro %u not calibrated (offset)" % (pname, idx))
         print("Gyro cal %u OK" % (idx+1))
 
 
-def check_baro(ref, refmav, test, testmav):
+def check_baro(conn):
     '''check baros'''
-    ref_press = util.wait_field(refmav, 'SCALED_PRESSURE', 'press_abs')
+    ref_press = util.wait_field(conn.refmav, 'SCALED_PRESSURE', 'press_abs')
     if ref_press is None:
         util.failure("No reference pressure")
-    press1 = util.wait_field(testmav, 'SCALED_PRESSURE', 'press_abs')
-    press2 = util.wait_field(testmav, 'SCALED_PRESSURE2', 'press_abs')
+    press1 = util.wait_field(conn.testmav, 'SCALED_PRESSURE', 'press_abs')
+    press2 = util.wait_field(conn.testmav, 'SCALED_PRESSURE2', 'press_abs')
     if press1 is None:
         util.failure("No pressure1 available")
     if press2 is None:
@@ -60,28 +60,28 @@ def check_baro(ref, refmav, test, testmav):
     if abs(ref_press - press2) > PRESSURE_TOLERANCE:
         util.failure("Baro2 error pressure=%f should be %f" % (press2, ref_press))
 
-    ref_temp = util.wait_field(refmav, 'SCALED_PRESSURE', 'temperature')*0.01
-    temp1 = util.wait_field(testmav, 'SCALED_PRESSURE', 'temperature')*0.01
-    temp2 = util.wait_field(testmav, 'SCALED_PRESSURE2', 'temperature')*0.01
+    ref_temp = util.wait_field(conn.refmav, 'SCALED_PRESSURE', 'temperature')*0.01
+    temp1 = util.wait_field(conn.testmav, 'SCALED_PRESSURE', 'temperature')*0.01
+    temp2 = util.wait_field(conn.testmav, 'SCALED_PRESSURE2', 'temperature')*0.01
     if abs(ref_temp - temp1) > TEMPERATURE_TOLERANCE:
         util.failure("Baro1 error temperature=%f should be %f" % (temp1, ref_temp))
     if abs(ref_temp - temp2) > TEMPERATURE_TOLERANCE:
         util.failure("Baro2 error temperature=%f should be %f" % (temp2, ref_temp))
     print("Baros OK")
 
-def check_power(ref, refmav, test, testmav):
+def check_power(conn):
     '''check power'''
-    ref_vcc  = util.wait_field(refmav, 'POWER_STATUS', 'Vcc')*0.001
-    test_vcc = util.wait_field(testmav, 'POWER_STATUS', 'Vcc')*0.001
+    ref_vcc  = util.wait_field(conn.refmav, 'POWER_STATUS', 'Vcc')*0.001
+    test_vcc = util.wait_field(conn.testmav, 'POWER_STATUS', 'Vcc')*0.001
     if abs(ref_vcc - test_vcc) > VOLTAGE_TOLERANCE:
         util.failure("Vcc error %.2f should be %.2f" % (test_vcc, ref_vcc))
 
-    ref_vservo  = util.wait_field(refmav, 'POWER_STATUS', 'Vservo')*0.001
-    test_vservo = util.wait_field(testmav, 'POWER_STATUS', 'Vservo')*0.001
+    ref_vservo  = util.wait_field(conn.refmav, 'POWER_STATUS', 'Vservo')*0.001
+    test_vservo = util.wait_field(conn.testmav, 'POWER_STATUS', 'Vservo')*0.001
     if abs(ref_vservo - test_vservo) > VOLTAGE_TOLERANCE:
         util.failure("Vservo error %.2f should be %.2f" % (test_vservo, ref_vservo))
 
-    test_flags = util.wait_field(testmav, 'POWER_STATUS', 'flags')
+    test_flags = util.wait_field(conn.testmav, 'POWER_STATUS', 'flags')
     pflags = mavutil.mavlink.MAV_POWER_STATUS_BRICK_VALID
     pflags |= mavutil.mavlink.MAV_POWER_STATUS_SERVO_VALID
     pflags |= mavutil.mavlink.MAV_POWER_STATUS_USB_CONNECTED
@@ -92,11 +92,11 @@ def check_power(ref, refmav, test, testmav):
         
 
 
-def check_mag(ref, refmav, test, testmav):
+def check_mag(conn):
     '''check mags'''
-    magx = util.wait_field(testmav, 'RAW_IMU', 'xmag')
-    magy = util.wait_field(testmav, 'RAW_IMU', 'ymag')
-    magz = util.wait_field(testmav, 'RAW_IMU', 'zmag')
+    magx = util.wait_field(conn.testmav, 'RAW_IMU', 'xmag')
+    magy = util.wait_field(conn.testmav, 'RAW_IMU', 'ymag')
+    magz = util.wait_field(conn.testmav, 'RAW_IMU', 'zmag')
     field = sqrt(magx**2 + magy**2 + magz**2)
     if field < 100 or field > 1000:
         print("Bad magnetic field (%u, %u, %u)" % (magx, magy, magz))
@@ -152,28 +152,28 @@ def check_serial_pair(testmav, port1, port2):
         print(reply2)
         util.failure("Incorrect serial response on ports %u %u" % (port1, port2))
 
-def check_serial(ref, refmav, test, testmav):
+def check_serial(conn):
     '''check a pair of loopback serial ports'''
-    check_serial_pair(testmav,
+    check_serial_pair(conn.testmav,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM1,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM2)
     print("Telemetry serial ports OK")
-    check_serial_pair(testmav,
+    check_serial_pair(conn.testmav,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS1,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS2)
     print("GPS serial ports OK")
 
-def check_status(ref, refmav, test, testmav):
+def check_status(conn):
     '''check SYS_STATUS flags'''
     sensor_bits = {
         'MAG'    : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_MAG,
         'ACCEL'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_ACCEL,
         'GYRO'   : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO
         }
-    teststatus = testmav.recv_match(type='SYS_STATUS', timeout=2)
+    teststatus = conn.testmav.recv_match(type='SYS_STATUS', timeout=2)
     if teststatus is None:
         util.failure("Failed to get SYS_STATUS from test board")
-    refstatus = testmav.recv_match(type='SYS_STATUS', timeout=2)
+    refstatus = conn.testmav.recv_match(type='SYS_STATUS', timeout=2)
     if refstatus is None:
         util.failure("Failed to get SYS_STATUS from reference board")
     for bit in sensor_bits:
@@ -190,21 +190,16 @@ def check_status(ref, refmav, test, testmav):
         print("%s status OK" % bit)
 
 
-def check_all_sensors(ref, refmav, test, testmav):
+def check_all_sensors(conn):
     '''run all sensor checks'''
-    check_baro(ref, refmav, test, testmav)
-    check_mag(ref, refmav, test, testmav)
-    check_power(ref, refmav, test, testmav)
-    check_serial(ref, refmav, test, testmav)
-    check_status(ref, refmav, test, testmav)
+    check_baro(conn)
+    check_mag(conn)
+    check_power(conn)
+    check_serial(conn)
+    check_status(conn)
     
 
 if __name__ == '__main__':
-    ref = None
-    ref = mav_reference.mav_reference()
-    refmav = mavutil.mavlink_connection("127.0.0.1:14550", robust_parsing=True)
+    conn = connection.Connection()
 
-    test = mav_test.mav_test()
-    testmav = mavutil.mavlink_connection("127.0.0.1:14551", robust_parsing=True)
-
-    check_all_sensors(ref, refmav, test, testmav)
+    check_all_sensors(conn)

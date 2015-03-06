@@ -18,5 +18,5 @@ def mav_test(testlog=None):
     return pexpect.spawn(cmd, logfile=testlog, timeout=10)
 
 if __name__ == '__main__':
-    ref = mav_test()
-    ref.interact()
+    test = mav_test()
+    test.interact()

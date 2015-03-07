@@ -128,16 +128,8 @@ def check_serial_pair(testmav, port1, port2):
     flags = mavutil.mavlink.SERIAL_CONTROL_FLAG_EXCLUSIVE | mavutil.mavlink.SERIAL_CONTROL_FLAG_RESPOND | mavutil.mavlink.SERIAL_CONTROL_FLAG_MULTI
 
     # drain the serial ports
-    while True:
-        testmav.mav.serial_control_send(port1, flags, 100, 57600, 0, serial_control_buf(""))
-        testmav.mav.serial_control_send(port2, flags, 100, 57600, 0, serial_control_buf(""))
-        reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
-        reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
-        if reply1 is not None and reply1.count != 0:
-            continue
-        if reply2 is not None and reply2.count != 0:
-            continue
-        break
+    testmav.mav.serial_control_send(port1, flags, 100, 57600, 0, serial_control_buf(""))
+    testmav.mav.serial_control_send(port2, flags, 100, 57600, 0, serial_control_buf(""))
     util.discard_messages(testmav)
 
     testmav.mav.serial_control_send(port1, flags, 10, 0, 5, serial_control_buf("TEST1"))
@@ -162,6 +154,7 @@ def check_serial_pair(testmav, port1, port2):
         util.failure("No reply on serial port %u" % port1)
     if not port2_ok:
         util.failure("No reply on serial port %u" % port2)
+    util.discard_messages(testmav)
 
 def check_serial(conn):
     '''check a pair of loopback serial ports'''
@@ -183,10 +176,10 @@ def check_status(conn):
         'ACCEL'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_ACCEL,
         'GYRO'   : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO
         }
-    teststatus = conn.testmav.recv_match(type='SYS_STATUS', timeout=5)
+    teststatus = conn.testmav.recv_match(type='SYS_STATUS', blocking=True, timeout=5)
     if teststatus is None:
         util.failure("Failed to get SYS_STATUS from test board")
-    refstatus = conn.testmav.recv_match(type='SYS_STATUS', timeout=2)
+    refstatus = conn.testmav.recv_match(type='SYS_STATUS', blocking=True, timeout=2)
     if refstatus is None:
         util.failure("Failed to get SYS_STATUS from reference board")
     for bit in sensor_bits:

@@ -31,7 +31,8 @@ def factory_install():
     '''main factory installer'''
     start_time = time.time()
 
-    colour_text.clear_screen()
+    if not args.test:
+        colour_text.clear_screen()
 
     logdir = logging.new_log_dir()
 

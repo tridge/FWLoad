@@ -128,8 +128,11 @@ def kill_processes(process_list):
 
 def wait_heartbeat(mav, timeout=10):
     '''wait for a heartbeat'''
-    if mav.recv_match(type='HEARTBEAT', blocking=True, timeout=timeout) is None:
-        failure("Failed to get heartbeat")
+    start_time = time.time()
+    while time.time() < start_time+timeout:
+        if mav.recv_match(type='HEARTBEAT', blocking=True, timeout=0.5) is not None:
+            return
+    failure("Failed to get heartbeat")    
 
 def safety_off(mav):
     '''turn off safety switch'''

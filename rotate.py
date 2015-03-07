@@ -12,6 +12,7 @@ from pymavlink.rotmat import Matrix3, Vector3
 from pymavlink.quaternion import Quaternion
 import mav_reference
 import connection
+import random
 
 def quat_division(quat, rquat):
     '''quaternion division'''
@@ -221,6 +222,34 @@ def gyro_integrate(conn):
             util.failure("Z gyro %u error: %.1f" % (idx, err.z))
 
 
+def unjam_servos(conn):
+    '''try to unjam servos with random movement'''
+    print("Starting unjamming")
+    conn.discard_messages()
+
+    rotations = ROTATIONS.keys()
+
+    util.param_set(conn.ref, 'SR0_RAW_SENS', 10)
+
+    last_change = time.time()
+    while True:
+        imu = conn.refmav.recv_match(type='RAW_IMU', blocking=False)
+        if imu is not None:
+            gyro = util.gyro_vector(imu)
+            print('Gyro: %s' % gyro)
+            if abs(gyro.x) > 5 or abs(gyro.y) > 5:
+                print("Unjammed: ", gyro)
+                break
+        if time.time() > last_change+0.7:
+            last_change = time.time()
+            r1 = int(random.uniform(800, 2100))
+            r2 = int(random.uniform(800, 2100))
+            print(r1, r2)
+            util.set_servo(conn.refmav, YAW_CHANNEL, r1)
+            util.set_servo(conn.refmav, PITCH_CHANNEL, r2)
+            
+
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser(description=__doc__)
@@ -231,6 +260,7 @@ if __name__ == '__main__':
                         help="wait for completion")
     parser.add_argument("--yaw-zero", type=int, default=ROTATIONS['level'].chan1,
                         help="zero on yaw channel")
+    parser.add_argument("--unjam", action='store_true', help="unjam servos")
     parser.add_argument("rotation", default="level", help="target rotation")
     args = parser.parse_args()
 
@@ -240,5 +270,8 @@ if __name__ == '__main__':
 
     conn = connection.Connection(ref_only=True)
 
+    if args.unjam:
+        unjam_servos(conn)
+        
     print("Rotating to %s" % args.rotation)
     set_rotation(conn, args.rotation, wait=args.wait)

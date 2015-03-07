@@ -33,7 +33,7 @@ def new_tlog(basename, extension='tlog'):
     if current_logdir is None:
         return basename + "." + extension
     for i in range(1, 1000000):
-        tlog = os.path.join(current_logdir, '%s-%u.tlog' % (basename, i))
+        tlog = os.path.join(current_logdir, '%s-%u.' % (basename, i)) + extension
         if not os.path.exists(tlog):
             return tlog
     util.failure("Unable to create new tlog for %s" % basename)

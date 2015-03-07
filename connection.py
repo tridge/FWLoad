@@ -20,8 +20,9 @@ def ref_gyro_offset_ok(refmav):
     This copes with the reference board moving while in startup, which
     can lead to bad gyro calibration
     '''
-    ref_ofs = refmav.recv_match(type='SENSOR_OFFSETS', blocking=True, timeout=5)
+    ref_ofs = refmav.recv_match(type='SENSOR_OFFSETS', blocking=True, timeout=10)
     if ref_ofs is None:
+        print("No SENSOR_OFFSETS message")
         return False
     gyros = Vector3(degrees(ref_ofs.gyro_cal_x),
                     degrees(ref_ofs.gyro_cal_y),
@@ -45,6 +46,13 @@ class Connection(object):
         self.testmav = None
         
         try:
+            if not ref_only:
+                self.nsh = nsh_console.nsh_console()
+        except Exception as ex:
+            self.close()
+            util.show_error('Connecting to nsh console', ex, self.testlog)
+
+        try:
             self.ref = mav_reference.mav_reference(self.reflog)
         except Exception as ex:
             self.close()
@@ -56,13 +64,6 @@ class Connection(object):
         except Exception as ex:
             self.close()
             util.show_error('Connecting to test board1', ex, self.testlog)
-
-        try:
-            if not ref_only:
-                self.nsh = nsh_console.nsh_console()
-        except Exception as ex:
-            self.close()
-            util.show_error('Connecting to nsh console', ex, self.testlog)
 
         try:
             print("CONNECTING MAVLINK TO REFERENCE BOARD")
@@ -130,4 +131,9 @@ class Connection(object):
         self.close()
 
 if __name__ == '__main__':
-    c = Connection()
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description=__doc__)
+
+    parser.add_argument("--ref-only", action='store_true', default=False, help="only connect to ref board")
+    args = parser.parse_args()
+    conn = Connection(ref_only=args.ref_only)

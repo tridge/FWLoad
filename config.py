@@ -33,10 +33,10 @@ NUM_GYROS=3
 
 # the address for remote mavlink UDP monitoring. This allows an
 # operator on a remote VPN to watch the process
-#REMOTE_MONITOR="10.26.1.200:16550"
-#REMOTE_MONITOR2="10.26.1.200:16551"
-REMOTE_MONITOR = None
-REMOTE_MONITOR2 = None
+REMOTE_MONITOR="10.26.1.200:16550"
+REMOTE_MONITOR2="10.26.1.200:16551"
+#REMOTE_MONITOR = None
+#REMOTE_MONITOR2 = None
 
 # the tolerances in degrees for rotation to the level position and
 # other positions
@@ -49,7 +49,7 @@ GYRO_TOLERANCE = 0.2
 
 # if gyro offsets are off by more than this value then the ref board was probably moving
 # and we need to power cycle
-REF_GYRO_TOLERANCE = 6.0
+REF_GYRO_TOLERANCE = 10.0
 
 # tolerances for the various sensors when testing against the
 # reference board
@@ -89,8 +89,8 @@ IDLE_MODES = ["RTL","CIRCLE","MANUAL","STABILIZE"]
 
 # servo positions for different orientations of boards in the test jig
 # the columns are:
-#    servo5 PWM
-#    servo6 PWM
+#    yaw PWM
+#    pitch PWM
 #    expected roll
 #    expected pitch
 class Rotation(object):
@@ -105,7 +105,7 @@ ROTATIONS = {
     'right' : Rotation(853,  1403,   90,    0),
     'left'  : Rotation(1669, 1398,  -90,    0),
     'up'    : Rotation(1260, 1400,  None,  90),
-    'down'  : Rotation(1272, 1912,  None, -90),
+    'down'  : Rotation(2061, 1385,  None, -90),
     'back'  : Rotation(1254, 1155,  180,    0),
     'slant' : Rotation(1094, 1584,   30,   30)
     }

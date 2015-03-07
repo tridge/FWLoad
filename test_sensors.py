@@ -21,7 +21,7 @@ def check_accel_cal(conn):
             pname = 'INS_ACC%sOFFS_%s' % (n, axis)
             ofs = util.param_value(conn.test, pname)
             if abs(ofs) < 0.000001:
-                util.failure("%s is zero - accel %u not calibrated (offset)" % (pname, idx))
+                util.failure("%s is zero - accel %u not calibrated (offset) %f" % (pname, idx, ofs))
             pname = 'INS_ACC%sSCAL_%s' % (n, axis)
             ofs = util.param_value(conn.test, pname)
             if abs(ofs-1.0) < 0.000001:
@@ -99,8 +99,8 @@ def check_mag(conn):
     magy = util.wait_field(conn.testmav, 'RAW_IMU', 'ymag')
     magz = util.wait_field(conn.testmav, 'RAW_IMU', 'zmag')
     field = sqrt(magx**2 + magy**2 + magz**2)
-    if field < 100 or field > 1000:
-        print("Bad magnetic field (%u, %u, %u)" % (magx, magy, magz))
+    if field < 100 or field > 2000:
+        util.failure("Bad magnetic field (%u, %u, %u, %.1f)" % (magx, magy, magz, field))
     print("Magnetometer OK")
 
 
@@ -145,7 +145,7 @@ def check_serial_pair(testmav, port1, port2):
         if reply is None or reply.count == 0:
             continue
         str = serial_control_str(reply)
-        print("reply: %u %s" % (reply.device, str))
+        #print("reply: %u %s" % (reply.device, str))
         if reply.device == port1 and str == "TEST2":
             port1_ok = True
         if reply.device == port2 and str == "TEST1":
@@ -162,8 +162,6 @@ def check_serial(conn):
                       mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM1,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM2)
     print("Telemetry serial ports OK")
-    print("GPS SERIAL CHECKS DISABLED")
-    return
     check_serial_pair(conn.testmav,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS1,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS2)

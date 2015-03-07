@@ -51,6 +51,7 @@ def erase_firmware(device, mcu_id):
     cmd = GDB
     print("Erasing firmware for '%s'" % mcu_id)
     try:
+        util.kill_processes([GDB])
         gdb = pexpect.spawn(cmd, logfile=sys.stdout, timeout=10)
         gdb.expect("(gdb)")
         gdb.send("target extended %s\n" % device)
@@ -71,8 +72,15 @@ def erase_firmware(device, mcu_id):
         gdb.expect("(gdb)")
         gdb.send("monitor erase\n")
         gdb.expect("(gdb)", timeout=20)
+        gdb.send('quit\n')
+        gdb.expect('Quit anyway')
+        gdb.send('y\n')
+        gdb.expect("Detached from remote")
+        gdb.close()
+        print("closed")
     except Exception as ex:
         util.show_error('Erasing firmware', ex)
+    print("Erase done")
 
 def attach_gdb(device, mcu_id):
     '''attach to gdb'''
@@ -133,33 +141,16 @@ def load_all_firmwares(retries=3):
 
 def erase_firmwares(retries=3):
     '''erase both firmwares. Return True on success, False on failure'''
-    while retries > 0:
-        retries -= 1
-        if not util.wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG]):
-            if retries == 1:
-                print("RETRIES=1 - POWER CYCLING")
-                power_control.power_cycle(down_time=4)
-            continue
-
-        try:
-            erase_firmware(IO_JTAG, CPUID_IO)
-            erase_firmware(FMU_JTAG, CPUID_FMU)
-        except Exception as ex:
-            print(ex)
-            continue
-
-        if util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
-            break
-        if retries > 0:
-            print("RETRIES %u - TRYING AGAIN" % retries)
-    if retries == 0:
-        print("FAILED TO ERASE FIRMWARES")
+    if not util.wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG]):
+        print("jtag devices not ready")
         return False
 
-    if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
-        print("Failed to find USB devices")
+    try:
+        erase_firmware(IO_JTAG, CPUID_IO)
+        erase_firmware(FMU_JTAG, CPUID_FMU)
+    except Exception as ex:
+        print(ex)
         return False
-
     print("All firmwares erased OK")
     return True
 

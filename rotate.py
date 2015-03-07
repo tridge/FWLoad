@@ -174,6 +174,7 @@ def gyro_integrate(conn):
     util.param_set(conn.test, 'SR0_RAW_SENS', 10)
 
     print("Starting gyro integration")
+    wait_quiescent(conn.refmav)
     conn.discard_messages()
 
     util.set_servo(conn.refmav, YAW_CHANNEL, ROTATIONS['level'].chan1+200)
@@ -194,7 +195,7 @@ def gyro_integrate(conn):
                 deltat = tnow - ref_tstart
                 ref_sum += gyro * deltat
             ref_tstart = tnow
-            if time.time() - start_time > 2 and gyro.length() < GYRO_TOLERANCE*2:
+            if time.time() - start_time > 2 and gyro.length() < GYRO_TOLERANCE:
                 break
         imu = conn.testmav.recv_match(type=msgs.keys(), blocking=False)
         if imu is not None:
@@ -248,8 +249,6 @@ def unjam_servos(conn):
             util.set_servo(conn.refmav, YAW_CHANNEL, r1)
             util.set_servo(conn.refmav, PITCH_CHANNEL, r2)
             
-
-
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser(description=__doc__)

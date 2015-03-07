@@ -7,7 +7,7 @@ open connections to ref and test boards
 import mav_reference
 import mav_test
 import nsh_console
-import util
+import util, time
 from config import *
 from StringIO import StringIO
 from pymavlink import mavutil
@@ -130,10 +130,28 @@ class Connection(object):
         '''auto-close'''
         self.close()
 
+def erase_parameters():
+    '''erase parameters on test board'''
+    conn = Connection()
+    print("Setting SYSID_SW_MREV to 0")
+    conn.test.send('param set SYSID_SW_MREV 0\n')
+    time.sleep(1)
+    print("rebooting")
+    conn.test.send('reboot\n')
+    util.discard_messages(conn.testmav)
+    util.wait_mode(conn.testmav, IDLE_MODES, timeout=30)
+    print("Parameters erased")
+    return True
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser(description=__doc__)
 
     parser.add_argument("--ref-only", action='store_true', default=False, help="only connect to ref board")
+    parser.add_argument("--erase", action='store_true', default=False, help="erase parameters")
     args = parser.parse_args()
-    conn = Connection(ref_only=args.ref_only)
+
+    if args.erase:
+        erase_parameters()
+    else:
+        conn = Connection(ref_only=args.ref_only)

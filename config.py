@@ -8,8 +8,8 @@ import os
 GDB="arm-none-eabi-gdb"
 
 # serial numbers of black magic probes in the various test jigs
-FMU_BMAGIC_SERIAL=[ "B5D9B0CD", "B5DDB7C5" ]
-IO_BMAGIC_SERIAL=[ "B5DBB0CE", "B5DFB7C6" ]
+FMU_BMAGIC_SERIAL=[ "B5D9B0CD", "B5DFB7C6" ]
+IO_BMAGIC_SERIAL=[ "B5DBB0CE", "B5DDB7C5" ]
 
 FW_IO="FW/px4io.elf"
 BL_IO="FW/px4io_bl.elf"
@@ -55,7 +55,7 @@ TEMPERATURE_TOLERANCE = 20
 VOLTAGE_TOLERANCE = 0.4
 
 # tolerance in gyro integration
-GYRO_SUM_TOLERANCE = 5.0
+GYRO_SUM_TOLERANCE = 8.0
 
 # TILT_TOLERANCE1 is the tilt tolerance for the isolated sensors. We expect that these
 # may be off by a few degrees, which we correct with AHRS trim

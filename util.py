@@ -79,8 +79,8 @@ def wait_field(refmav, msg_type, field):
 
 def param_value(test, pname):
     '''get a param value given a mavproxy connection'''
-    test.send('param show %s\n' % pname)
-    test.expect('%s\s+(-?\d+\.\d+)\r\n' % pname)
+    test.send('param fetch %s\n' % pname)
+    test.expect('%s\s+=\s+(-?\d+\.\d+)\r\n' % pname)
     return float(test.match.group(1))
 
 def param_set(test, pname, value):

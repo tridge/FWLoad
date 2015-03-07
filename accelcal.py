@@ -117,6 +117,18 @@ def adjust_ahrs_trim(conn, level_attitude):
         abs(yaw_error3) > TILT_TOLERANCE3):
         util.failure("Test board yaw error")
 
+def calibrate_gyro(conn):
+    '''re-calibrate gyros on copter'''
+    util.wait_heartbeat(conn.testmav)
+    print("Calibrating gyros")
+    conn.test.send('gyrocal\n')
+    conn.ref.send('gyrocal\n')
+    conn.test.expect("Calibrated")
+    conn.ref.expect("Calibrated")
+    conn.test.send('param fetch INS_GY*\n')
+    conn.ref.send('param fetch INS_GY*\n')
+    print("calibration done")
+
 def accel_calibrate_run(conn):
     '''run accelcal'''
     print("STARTING ACCEL CALIBRATION")
@@ -124,10 +136,13 @@ def accel_calibrate_run(conn):
     # turn safety off again (for loss of USB packets)
     rotate.set_rotation(conn, 'level', wait=False)
     util.safety_off(conn.refmav)
+    time.sleep(4)
 
     # use zero trims on reference board
     util.param_set(conn.ref, 'AHRS_TRIM_X', 0)
     util.param_set(conn.ref, 'AHRS_TRIM_Y', 0)
+
+    calibrate_gyro(conn)
 
     level_attitude = None
     conn.test.send("accelcal\n")

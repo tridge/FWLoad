@@ -122,11 +122,11 @@ def calibrate_gyro(conn):
     util.wait_heartbeat(conn.testmav)
     print("Calibrating gyros")
     conn.test.send('gyrocal\n')
-    conn.ref.send('gyrocal\n')
+    #conn.ref.send('gyrocal\n')
     conn.test.expect("Calibrated")
-    conn.ref.expect("Calibrated")
+    #conn.ref.expect("Calibrated")
     conn.test.send('param fetch INS_GY*\n')
-    conn.ref.send('param fetch INS_GY*\n')
+    #conn.ref.send('param fetch INS_GY*\n')
     print("calibration done")
 
 def accel_calibrate_run(conn):

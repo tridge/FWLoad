@@ -22,8 +22,12 @@ parser = ArgumentParser(description=__doc__)
 parser.add_argument("--test", dest="test", default=False, action='store_true', help="run in test loop")
 parser.add_argument("--once", dest="once", default=False, action='store_true', help="run one install only")
 parser.add_argument("--nofw", dest="nofw", default=False, action='store_true', help="don't reload firmware")
+parser.add_argument("--monitor", default=None, help="monitor address")
 args = parser.parse_args()
 
+if args.monitor:
+    REMOTE_MONITOR['ref'] = args.monitor + ":16550"
+    REMOTE_MONITOR['test'] = args.monitor + ":16551"
 
 colour_text.print_blue("Starting up")
 

@@ -3,6 +3,7 @@
 test sensors against reference board
 '''
 import util
+import time
 from config import *
 from math import *
 import connection
@@ -113,7 +114,7 @@ def serial_control_str(msg):
     '''handle receiving with SERIAL_CONTROL'''
     buf = msg.data
     s = ''
-    for i in range(70):
+    for i in range(msg.count):
         c = buf[i]
         if c == 0:
             break
@@ -126,31 +127,41 @@ def check_serial_pair(testmav, port1, port2):
     # lock both ports and flush data
     flags = mavutil.mavlink.SERIAL_CONTROL_FLAG_EXCLUSIVE | mavutil.mavlink.SERIAL_CONTROL_FLAG_RESPOND | mavutil.mavlink.SERIAL_CONTROL_FLAG_MULTI
 
-    testmav.mav.serial_control_send(port1, flags, 100, 0, 0, serial_control_buf("FLUSH1"))
-    testmav.mav.serial_control_send(port2, flags, 100, 0, 0, serial_control_buf("FLUSH2"))
-    testmav.mav.serial_control_send(port1, flags, 100, 0, 0, serial_control_buf("FLUSH1"))
-    testmav.mav.serial_control_send(port2, flags, 100, 0, 0, serial_control_buf("FLUSH2"))
-
-    reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
-    reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
-    reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
-    reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+    # drain the serial ports
+    while True:
+        testmav.mav.serial_control_send(port1, flags, 100, 57600, 0, serial_control_buf(""))
+        testmav.mav.serial_control_send(port2, flags, 100, 57600, 0, serial_control_buf(""))
+        reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+        reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+        if reply1 is not None and reply1.count != 0:
+            continue
+        if reply2 is not None and reply2.count != 0:
+            continue
+        break
     util.discard_messages(testmav)
 
-    testmav.mav.serial_control_send(port1, flags, 100, 0, 0, serial_control_buf("TEST1"))
-    testmav.mav.serial_control_send(port2, flags, 100, 0, 0, serial_control_buf("TEST2"))
+    testmav.mav.serial_control_send(port1, flags, 10, 0, 5, serial_control_buf("TEST1"))
+    testmav.mav.serial_control_send(port2, flags, 10, 0, 5, serial_control_buf("TEST2"))
+    testmav.mav.serial_control_send(port1, flags, 10, 0, 5, serial_control_buf("TEST1"))
+    testmav.mav.serial_control_send(port2, flags, 10, 0, 5, serial_control_buf("TEST2"))
 
-    reply1 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
-    reply2 = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
-    if reply1 is None or reply2 is None:
-        util.failure("No reply on serial ports %u %u" % (port1, port2))
-
-    str1 = serial_control_str(reply1)
-    str2 = serial_control_str(reply2)
-    if str1 != 'TEST1' or str2 != 'TEST2':
-        print(reply1)
-        print(reply2)
-        util.failure("Incorrect serial response on ports %u %u" % (port1, port2))
+    start_time = time.time()
+    port1_ok = False
+    port2_ok = False
+    while time.time() < start_time+5 and (not port1_ok or not port2_ok):
+        reply = testmav.recv_match(type='SERIAL_CONTROL', blocking=True, timeout=2)
+        if reply is None or reply.count == 0:
+            continue
+        str = serial_control_str(reply)
+        print("reply: %u %s" % (reply.device, str))
+        if reply.device == port1 and str == "TEST2":
+            port1_ok = True
+        if reply.device == port2 and str == "TEST1":
+            port2_ok = True
+    if not port1_ok:
+        util.failure("No reply on serial port %u" % port1)
+    if not port2_ok:
+        util.failure("No reply on serial port %u" % port2)
 
 def check_serial(conn):
     '''check a pair of loopback serial ports'''
@@ -158,6 +169,8 @@ def check_serial(conn):
                       mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM1,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM2)
     print("Telemetry serial ports OK")
+    print("GPS SERIAL CHECKS DISABLED")
+    return
     check_serial_pair(conn.testmav,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS1,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS2)
@@ -170,7 +183,7 @@ def check_status(conn):
         'ACCEL'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_ACCEL,
         'GYRO'   : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO
         }
-    teststatus = conn.testmav.recv_match(type='SYS_STATUS', timeout=2)
+    teststatus = conn.testmav.recv_match(type='SYS_STATUS', timeout=5)
     if teststatus is None:
         util.failure("Failed to get SYS_STATUS from test board")
     refstatus = conn.testmav.recv_match(type='SYS_STATUS', timeout=2)

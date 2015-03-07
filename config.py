@@ -33,10 +33,7 @@ NUM_GYROS=3
 
 # the address for remote mavlink UDP monitoring. This allows an
 # operator on a remote VPN to watch the process
-REMOTE_MONITOR="10.26.1.200:16550"
-REMOTE_MONITOR2="10.26.1.200:16551"
-#REMOTE_MONITOR = None
-#REMOTE_MONITOR2 = None
+REMOTE_MONITOR = { "ref" : None, "test" : None}
 
 # the tolerances in degrees for rotation to the level position and
 # other positions

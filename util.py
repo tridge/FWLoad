@@ -198,18 +198,6 @@ def mkdir_p(dir):
     mkdir_p(os.path.dirname(dir))
     os.mkdir(dir)
 
-def mav_close(ref, refmav, test, testmav):
-    '''close UDP mavlink connections'''
-    if ref is not None:
-        ref.close()
-    if test is not None:
-        test.close()
-    if refmav is not None:
-        refmav.close()
-    if testmav is not None:
-        testmav.close()
-
-
 def gyro_vector(raw_imu):
     '''return a gyro vector in degrees/sec from a raw_imu message'''
     from pymavlink.rotmat import Vector3

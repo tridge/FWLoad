@@ -21,7 +21,13 @@ def load_firmware(device, firmware, mcu_id, run=False):
         gdb.expect("Remote debugging using")
         gdb.expect("(gdb)")
         gdb.send("monitor swdp_scan\n")
-        gdb.expect(mcu_id)
+        cpu = gdb.expect([CPUID_IO, CPUID_FMU])
+        if cpu == 0:
+            if mcu_id != CPUID_IO:
+                util.failure("Incorrect CPU ID '%s' - expected '%s'" % (CPUID_IO, mcu_id))
+        else:
+            if mcu_id != CPUID_FMU:
+                util.failure("Incorrect CPU ID '%s' - expected '%s'" % (CPUID_FMU, mcu_id))
         gdb.expect("(gdb)")
         gdb.send("attach 1\n")
         gdb.expect("(gdb)")
@@ -63,6 +69,10 @@ def load_all_firmwares(retries=3):
             break
         if retries > 0:
             print("RETRIES %u - TRYING AGAIN" % retries)
+    if retries == 0:
+        print("FAILED TO LOAD FIRMWARES")
+        return False
+
     if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
         print("Failed to find USB devices")
         return False

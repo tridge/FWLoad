@@ -90,6 +90,28 @@ do the following:
  * if everything passed then the system is powered off via the FTDI
    cable, ready for the next board
 
+The command line opttions can be used to run in different modes.
+
+ * the --test option puts the system into a mode where it doesn't wait
+   for the operator to use the lid. The FTDI power control is used to
+   simulate the power-on/power-off of the operator. The screen is also
+   not cleared between runs. This mode is very useful for continuous
+   unattended operation to validate a test jig.
+
+ * the --once option makes the script do a single run instead of
+   looping. 
+
+ * the --nofw option skips the firmware load step
+
+ * the --erase option forces an erase of the firmwares and FRAM
+   parameters
+
+ * the --monitor option allows for a remote MAVLink monitoring system
+   to be specified. This should be a IPv4 address of a system
+   listening on UDP ports 16550 and 16551 (for reference and test
+   boards). This can be used to remotely monitor the factory load
+   process
+
 ### power_control.py
 
 The power_control.py tool can be used to power cycle the system via

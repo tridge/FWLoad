@@ -28,6 +28,9 @@ USB_DEV_REFERENCE="/dev/serial/by-id/usb-3D_Robotics_PH_REFERENCE_0-if00"
 # there must be exactly one FTDI device
 FTDI_POWER="/dev/serial/by-id/usb-FTDI_*"
 
+# file containing factory parameters to load
+FACTORY_PARM="FW/factory.parm"
+
 # how many accels and gyros we expect to find
 NUM_ACCELS=3
 NUM_GYROS=3

@@ -129,6 +129,20 @@ def adjust_ahrs_trim(conn, level_attitude):
 def wait_gyros_healthy(conn):
     '''wait for gyros to be healthy'''
     util.wait_heartbeat(conn.testmav)
+
+    print("Recalibrating gyro")
+    # we must have AHRS_ORIENTATION 0 for the accelcal
+    # we will fix for AHRS_ORIENTATION=12 later
+    util.param_set(conn.test, 'AHRS_ORIENTATION', 0)
+    util.param_set(conn.ref, 'AHRS_ORIENTATION', 0)
+
+    # give time for 1Hz loop to set orientation
+    time.sleep(2)
+
+    # then recalibrate
+    conn.test.send('gyrocal\n')
+    conn.test.expect('Calibrated')
+    
     print("Waiting for gyro health")
     start_time = time.time()
     ref_gyros_healthy = False
@@ -206,6 +220,38 @@ def accel_calibrate_run(conn):
     rotate.set_rotation(conn, 'level', wait=False)
     adjust_ahrs_trim(conn, level_attitude)
 
+
+def adjust_orientation(conn, orientation):
+    '''adjust accel and gyro cal for orientation'''
+    print("Adjusting for AHRS_ORIENTATION %u" % orientation)
+    if orientation == 0:
+        return
+
+    plist = {}
+
+    if orientation == 12:
+        # 12 is PITCH_180
+        # for orientation 12 we need to reverse the X and Z accelerometer
+        # offsets. We don't need to change the scaling
+        revlist = ["INS_ACC%sOFFS_%s" % (id,axis) for id in ['','2','3'] for axis in ['X','Z']]
+        for r in revlist:
+            v = util.param_value(conn.test, r)
+            plist[r] = -v
+    else:
+        util.failure("Orientation %u not supported")
+
+    for p in plist:
+        print("Setting %s to %f" % (p, plist[p]))
+        util.param_set(conn.test, p, plist[p])
+    for p in plist:
+        print("Checking %s" % p)
+        v = util.param_value(conn.test, p)
+        if abs(v - plist[p]) > 0.00001:
+            util.failure("Failed to set %s to %f - got %f" % (p, plist[p], v))
+
+    print("Changed orientation OK")
+        
+
 def accel_calibrate():
     '''run full accel calibration'''
 
@@ -227,6 +273,19 @@ def accel_calibrate():
     except Exception as ex:
         conn.close()
         util.show_error('Test sensors failed', ex)
+
+    try:
+        print("Loading factory parameters")
+        conn.test.send('param load %s\n' % FACTORY_PARM)
+        conn.test.expect('Loaded \d+ parameters from')
+        orientation = util.param_value(conn.test, 'AHRS_ORIENTATION')
+        orientation = int(orientation)
+        if orientation != 0:
+            adjust_orientation(conn, orientation)
+        print("Parameters loaded OK")
+    except Exception as ex:
+        conn.close()
+        util.show_error('Parameter load failed', ex)
 
     conn.close()
 

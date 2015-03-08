@@ -92,10 +92,9 @@ class Connection(object):
             self.close()
             util.show_error('testing reference gyros', ex)
 
-        print("Setting reference safety off")
+        print("Setting rotation level")
         try:
             rotate.set_rotation(self, 'level', wait=False)
-            util.safety_off(self.refmav)
         except Exception as ex:
             self.close()
             util.show_error("unable to set safety off", ex)

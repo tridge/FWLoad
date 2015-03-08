@@ -170,8 +170,11 @@ Put the reference board in the test slot in the jig, then use the
 jtag.py tool to load the reference firmwares:
 
 > FWLoad/jtag.py --fmu --firmware FW/px4fmuv2_bl_REFERENCE.elf
+
 > FWLoad/jtag.py --fmu --firmware FW/firmware-REFERENCE.elf
+
 > FWLoad/jtag.py --io --firmware FW/px4io_bl.elf
+
 > FWLoad/jtag.py --io --firmware FW/px4io.elf
 
 After each command use "load" to load the firmware

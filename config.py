@@ -25,7 +25,8 @@ CPUID_FMU="STM32F4xx"
 USB_DEV_TEST="/dev/serial/by-id/usb-3D_Robotics_PX4_FMU_v2.x_0-if00"
 USB_DEV_REFERENCE="/dev/serial/by-id/usb-3D_Robotics_PH_REFERENCE_0-if00"
 
-FTDI_POWER="/dev/serial/by-id/usb-FTDI_TTL232R_FTFX6YMW-if00-port0"
+# there must be exactly one FTDI device
+FTDI_POWER="/dev/serial/by-id/usb-FTDI_*"
 
 # how many accels and gyros we expect to find
 NUM_ACCELS=3
@@ -71,12 +72,12 @@ TILT_TOLERANCE3 = 2.5
 
 # yaw in body frame
 YAW_CHANNEL = 2
-# +100 change == -20 degrees
+# Yaw movement rate. +100 change == -22 degrees
 YAW_SCALE = -22.0 / 100
 
 # pitch in earth frame
 PITCH_CHANNEL = 1
-# +100 change == -34 degrees
+# pitch movement rate. +100 change == -34 degrees
 PITCH_SCALE = -34.0/100
 
 # acceptable modes when the test board is idle. This works for both

@@ -164,3 +164,12 @@ connection logic for connecting to the two boards.
 The system keeps logs of all interactions with each board in the logs
 directory. With a subdirectory per day and per run.
 
+## Loading reference firmware
+
+Put the reference board in the test slot in the jig, then use the
+jtag.py tool to load the reference firmwares:
+
+> FWLoad/jtag.py --fmu --firmware FW/px4fmuv2_bl_REFERENCE.elf
+> FWLoad/jtag.py --fmu --firmware FW/firmware-REFERENCE.elf
+> FWLoad/jtag.py --io --firmware FW/px4io_bl.elf
+> FWLoad/jtag.py --io --firmware FW/px4io.elf

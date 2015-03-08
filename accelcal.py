@@ -117,32 +117,40 @@ def adjust_ahrs_trim(conn, level_attitude):
         abs(yaw_error3) > TILT_TOLERANCE3):
         util.failure("Test board yaw error")
 
-def calibrate_gyro(conn):
-    '''re-calibrate gyros on copter'''
+def wait_gyros(conn):
+    '''wait for gyros to be ready'''
     util.wait_heartbeat(conn.testmav)
-    print("Calibrating gyros")
-    conn.test.send('gyrocal\n')
-    #conn.ref.send('gyrocal\n')
-    conn.test.expect("Calibrated")
-    #conn.ref.expect("Calibrated")
+    print("Waiting for gyro health")
+    start_time = time.time()
+    ref_gyros_healthy = False
+    test_gyros_healthy = False
+    while time.time() < start_time + 10 and (not ref_gyros_healthy or not test_gyros_healthy):
+        ref_sys_status = conn.refmav.recv_match(type='SYS_STATUS', blocking=True, timeout=1)
+        if ref_sys_status:
+            ref_gyros_healthy = (ref_sys_status.onboard_control_sensors_health & mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO) != 0
+        test_sys_status = conn.testmav.recv_match(type='SYS_STATUS', blocking=True, timeout=1)
+        if test_sys_status:
+            test_gyros_healthy = (test_sys_status.onboard_control_sensors_health & mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO) != 0
+    if not ref_gyros_healthy:
+        util.failure("Failed to get healthy reference gyros")
+    if not test_gyros_healthy:
+        util.failure("Failed to get healthy test gyros")
     conn.test.send('param fetch INS_GY*\n')
-    #conn.ref.send('param fetch INS_GY*\n')
-    print("calibration done")
+    print("gyros ready")
 
 def accel_calibrate_run(conn):
     '''run accelcal'''
     print("STARTING ACCEL CALIBRATION")
 
-    # turn safety off again (for loss of USB packets)
+    wait_gyros(conn)
+
+    print("Turning safety off")
     rotate.set_rotation(conn, 'level', wait=False)
     util.safety_off(conn.refmav)
-    time.sleep(4)
 
     # use zero trims on reference board
     util.param_set(conn.ref, 'AHRS_TRIM_X', 0)
     util.param_set(conn.ref, 'AHRS_TRIM_Y', 0)
-
-    calibrate_gyro(conn)
 
     level_attitude = None
     conn.test.send("accelcal\n")
@@ -160,7 +168,7 @@ def accel_calibrate_run(conn):
     i = conn.test.expect(["Calibration successful","Calibration FAILED"])
     if i != 0:
         util.show_tail(conn.testlog)
-        util.failure("Accel calibration failed")
+        util.failure("Accel calibration failed at %s" % time.ctime())
     rotate.set_rotation(conn, 'level', wait=False)
     adjust_ahrs_trim(conn, level_attitude)
 

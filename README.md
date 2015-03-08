@@ -181,7 +181,11 @@ After each command use "load" to load the firmware
 
 ## Calibrating reference board
 
-The reference board needs to have its accelerometers calibrated. Use
-this command:
+The reference board needs to have its accelerometers calibrated before
+being used. Use this command:
 
 > FWLoad/accelcal.py --reference
+
+the reference board can be in either slot while being calibrated. It
+will rotate the board while doing accel calibration. The calibration
+assumes the accelerometer is correctly aligned with the board.

@@ -275,6 +275,9 @@ if __name__ == '__main__':
 
     conn = connection.Connection(ref_only=True)
 
+    print("Turning safety off")
+    util.safety_off(conn.refmav)
+
     if args.unjam:
         unjam_servos(conn)
         

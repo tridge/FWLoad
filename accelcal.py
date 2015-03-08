@@ -117,13 +117,23 @@ def adjust_ahrs_trim(conn, level_attitude):
         abs(yaw_error3) > TILT_TOLERANCE3):
         util.failure("Test board yaw error")
 
-def wait_gyros(conn):
-    '''wait for gyros to be ready'''
+    trim_x = radians((roll_error1+roll_error2)/2)
+    trim_y = radians((pitch_error1+pitch_error2)/2)
+    util.param_set(conn.test, AHRS_TRIM_X, trim_x)
+    time.sleep(0.2)
+    util.param_set(conn.test, AHRS_TRIM_Y, trim_y)
+    time.sleep(0.2)
+    print("Set trims AHRS_TRIM_X=%.4f AHRS_TRIM_Y=%.4f", trim_x, trim_y)
+    
+
+def wait_gyros_healthy(conn):
+    '''wait for gyros to be healthy'''
     util.wait_heartbeat(conn.testmav)
     print("Waiting for gyro health")
     start_time = time.time()
     ref_gyros_healthy = False
     test_gyros_healthy = False
+    conn.discard_messages()
     while time.time() < start_time + 10 and (not ref_gyros_healthy or not test_gyros_healthy):
         ref_sys_status = conn.refmav.recv_match(type='SYS_STATUS', blocking=True, timeout=1)
         if ref_sys_status:
@@ -132,11 +142,35 @@ def wait_gyros(conn):
         if test_sys_status:
             test_gyros_healthy = (test_sys_status.onboard_control_sensors_health & mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO) != 0
     if not ref_gyros_healthy:
-        util.failure("Failed to get healthy reference gyros")
+        print("Failed to get healthy reference gyros")
+        return False
     if not test_gyros_healthy:
-        util.failure("Failed to get healthy test gyros")
-    conn.test.send('param fetch INS_GY*\n')
-    print("gyros ready")
+        print("Failed to get healthy test gyros")
+        return False
+    print("Gyros are healthy")
+    return True
+
+def wait_gyros(conn):
+    '''wait for gyros to be ready'''
+    tries = 3
+    while tries > 0:
+        tries -= 1
+        if not wait_gyros_healthy(conn):
+            util.failure("Failed to get healthy gyros")
+        rotate.wait_quiescent(conn.refmav)
+        print("Reference is quiescent")
+        try:
+            rotate.wait_quiescent_list(conn.testmav, ['RAW_IMU', 'SCALED_IMU2', 'SCALED_IMU3'])
+            print("Test is quiescent")
+        except Exception as ex:
+            print("Recalibrating gyros : %s" % ex)
+            conn.test.send('gyrocal\n')
+            conn.expect('Calibrated')
+            continue
+        break
+    if tries == 0:
+        util.failure("Failed waiting for gyros")
+    print("Gyros ready")
 
 def accel_calibrate_run(conn):
     '''run accelcal'''

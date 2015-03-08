@@ -66,28 +66,32 @@ def attitude_error(attitude, target_roll, target_pitch):
     return (err_roll, err_pitch)
 
 
-def wait_quiescent(refmav):
+def wait_quiescent(mav, type='RAW_IMU'):
     '''wait for movement to stop'''
     t1 = time.time()
-    util.discard_messages(refmav)
-    
+    util.discard_messages(mav)
+    raw_imu = None
     while time.time() < t1+20:
-        raw_imu = refmav.recv_match(type='RAW_IMU',
-                                    blocking=True, timeout=4)
+        raw_imu = mav.recv_match(type=type, blocking=True, timeout=4)
         if raw_imu is None:
-            util.failure("communication with reference board lost")
+            util.failure("communication with board lost for %s" % type)
         if (abs(degrees(raw_imu.xgyro*0.001)) < GYRO_TOLERANCE and
             abs(degrees(raw_imu.ygyro*0.001)) < GYRO_TOLERANCE and
             abs(degrees(raw_imu.zgyro*0.001)) < GYRO_TOLERANCE):
             break
     if raw_imu is None:
         util.failure("Failed to reach quiescent state")
-    attitude = refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
+    attitude = mav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
     if attitude is None:
         util.failure("Failed to receive ATTITUDE message")
-    t2 = time.time()
     return attitude
-            
+
+def wait_quiescent_list(mav, types):
+    '''wait for movement to stop on a list of gyros'''
+    attitude = None
+    for type in types:
+        attitude = wait_quiescent(mav, type)
+    return attitude
 
 def optimise_attitude(conn, rotation, tolerance):
     '''optimise attitude using servo changes'''

@@ -119,11 +119,11 @@ def adjust_ahrs_trim(conn, level_attitude):
 
     trim_x = radians((roll_error1+roll_error2)/2)
     trim_y = radians((pitch_error1+pitch_error2)/2)
-    util.param_set(conn.test, AHRS_TRIM_X, trim_x)
+    util.param_set(conn.test, 'AHRS_TRIM_X', trim_x)
     time.sleep(0.2)
-    util.param_set(conn.test, AHRS_TRIM_Y, trim_y)
+    util.param_set(conn.test, 'AHRS_TRIM_Y', trim_y)
     time.sleep(0.2)
-    print("Set trims AHRS_TRIM_X=%.4f AHRS_TRIM_Y=%.4f", trim_x, trim_y)
+    print("Set trims AHRS_TRIM_X=%.4f AHRS_TRIM_Y=%.4f" % (trim_x, trim_y))
     
 
 def wait_gyros_healthy(conn):

@@ -124,7 +124,7 @@ def optimise_attitude(conn, rotation, tolerance):
         print("%s error: %.2f %.2f chan1=%u chan2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
         if (tries > 0 and (abs(err_roll)+abs(err_pitch) < tolerance or
                            (abs(chan1_change)<1 and abs(chan2_change)<1))):
-            print("%s converged %.2f %.2f tolerance %.1f" % (rotation, err_roll, err_pitch, tolerance))
+            print("%s converged %.2f %.2f tolerance %.1f at %s" % (rotation, err_roll, err_pitch, tolerance, time.ctime()))
             # update optimised rotations to save on convergence time for the next board
             ROTATIONS[rotation].chan1 = chan1
             ROTATIONS[rotation].chan2 = chan2
@@ -170,10 +170,12 @@ def set_rotation(conn, rotation, wait=True):
 
 def gyro_integrate(conn):
     '''test gyros by integrating while rotating to the given rotations'''
-    util.param_set(conn.ref, 'SR0_RAW_SENS', 10)
-    util.param_set(conn.test, 'SR0_RAW_SENS', 10)
+    conn.ref.send('set streamrate -1\n')
+    conn.test.send('set streamrate -1\n')
+    util.param_set(conn.ref, 'SR0_RAW_SENS', 20)
+    util.param_set(conn.test, 'SR0_RAW_SENS', 20)
 
-    print("Starting gyro integration")
+    print("Starting gyro integration at %s" % time.ctime())
     wait_quiescent(conn.refmav)
     conn.discard_messages()
 

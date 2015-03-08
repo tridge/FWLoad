@@ -254,5 +254,46 @@ def accel_calibrate_retries(retries=4):
     print("accelcal: no more retries")
     return False
 
+
+def accel_calibrate_reference():
+    '''run accelcal on reference board'''
+    print("STARTING REFERENCE ACCEL CALIBRATION")
+
+    conn = connection.Connection(ref_only=True)
+
+    print("Turning safety off")
+    rotate.set_rotation(conn, 'level', wait=False)
+    util.safety_off(conn.refmav)
+
+    conn.ref.send("accelcal\n")
+    for rotation in ['level', 'left', 'right', 'up', 'down', 'back']:
+        try:
+            conn.ref.expect("Place vehicle")
+            conn.ref.expect("and press any key")
+        except Exception as ex:
+            util.failure("Failed to get place vehicle message for %s" % rotation)
+        print("Rotating %s" % rotation)
+        attitude = rotate.set_rotation(conn, rotation, wait=False)
+        time.sleep(13)
+        conn.ref.send("\n")
+    i = conn.ref.expect(["Calibration successful","Calibration FAILED"])
+    if i != 0:
+        util.failure("Accel calibration failed at %s" % time.ctime())
+    print("Calibration successful")
+    rotate.set_rotation(conn, 'level', wait=False)
+    util.param_set(conn.ref, 'AHRS_TRIM_X', 0)
+    util.param_set(conn.ref, 'AHRS_TRIM_Y', 0)
+    util.discard_messages(conn.refmav)
+    util.wait_heartbeat(conn.refmav)
+
 if __name__ == '__main__':
-    accel_calibrate_retries()
+    from argparse import ArgumentParser
+    parser = ArgumentParser(description=__doc__)
+
+    parser.add_argument("--reference", action='store_true', default=False, help="calibrate reference board")
+    args = parser.parse_args()
+
+    if args.reference:
+        accel_calibrate_reference()
+    else:
+        accel_calibrate_retries()

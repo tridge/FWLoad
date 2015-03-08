@@ -173,3 +173,12 @@ jtag.py tool to load the reference firmwares:
 > FWLoad/jtag.py --fmu --firmware FW/firmware-REFERENCE.elf
 > FWLoad/jtag.py --io --firmware FW/px4io_bl.elf
 > FWLoad/jtag.py --io --firmware FW/px4io.elf
+
+After each command use "load" to load the firmware
+
+## Calibrating reference board
+
+The reference board needs to have its accelerometers calibrated. Use
+this command:
+
+> FWLoad/accelcal.py --reference

@@ -105,6 +105,10 @@ def attach_gdb(device, mcu_id, firmware=None):
     gdb.expect("(gdb)")
     gdb.send("set mem inaccessible-by-default off\n")
     gdb.expect("(gdb)")
+    if firmware is not None:
+        print("Use 'load' to load the firmware")
+        print("Use 'quit' to quit")
+    gdb.send('\n')
     gdb.interact()
 
 def load_all_firmwares(retries=3):

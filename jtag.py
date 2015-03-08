@@ -82,9 +82,11 @@ def erase_firmware(device, mcu_id):
         util.show_error('Erasing firmware', ex)
     print("Erase done")
 
-def attach_gdb(device, mcu_id):
+def attach_gdb(device, mcu_id, firmware=None):
     '''attach to gdb'''
     cmd = GDB
+    if firmware is not None:
+        cmd += " " + firmware
     gdb = pexpect.spawn(cmd, logfile=None, timeout=10)
     gdb.expect("(gdb)")
     gdb.send("target extended %s\n" % device)
@@ -162,11 +164,12 @@ if __name__ == '__main__':
     parser.add_argument("--erase", default=False, action='store_true', help="erase flash")
     parser.add_argument("--io", default=False, action='store_true', help="attach gdb to io")
     parser.add_argument("--fmu", default=False, action='store_true', help="attach gdb to fmu")
+    parser.add_argument("--firmware", default=None, help="firmware to use in attach")
     args = parser.parse_args()
     if args.io:
-        attach_gdb(IO_JTAG, CPUID_IO)
+        attach_gdb(IO_JTAG, CPUID_IO, args.firmware)
     elif args.fmu:
-        attach_gdb(FMU_JTAG, CPUID_FMU)
+        attach_gdb(FMU_JTAG, CPUID_FMU, args.firmware)
     elif args.erase:
         erase_firmwares()
     else:

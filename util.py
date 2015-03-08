@@ -24,10 +24,9 @@ def show_tail(logstr):
 
 def show_error(test, ex, logstr=None):
     '''display an error then raise an exception'''
-    print("exception: %s" % ex)
     if logstr is not None:
         show_tail(logstr)
-    raise(FirmwareLoadError("FAILED: %s" % test))
+    raise(FirmwareLoadError("FAILED: %s (%s)" % (test, ex)))
 
 def wait_devices(devices, timeout=10):
     '''wait for devices to appear'''

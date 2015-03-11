@@ -6,6 +6,7 @@ load firmwares over JTAG with gdb under pexpect
 import pexpect, sys, util
 from StringIO import StringIO
 from config import *
+import power_control
 
 def load_firmware(device, firmware, mcu_id, run=False):
     '''load a given firmware'''
@@ -137,6 +138,9 @@ def load_all_firmwares(retries=3):
     if retries == 0:
         print("FAILED TO LOAD FIRMWARES")
         return False
+
+    # power cycle after loading to ensure the boards can come up cleanly
+    power_control.power_cycle(down_time=4)
 
     if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
         print("Failed to find USB devices")

@@ -215,8 +215,12 @@ def accel_calibrate_run(conn):
         conn.test.send("\n")
     i = conn.test.expect(["Calibration successful","Calibration FAILED"])
     if i != 0:
+        print(conn.test.before)
+        print("Calibration FAILED")
         util.show_tail(conn.testlog)
         util.failure("Accel calibration failed at %s" % time.ctime())
+    print(conn.test.before)
+    print("Calibration successful")
     rotate.set_rotation(conn, 'level', wait=False)
     adjust_ahrs_trim(conn, level_attitude)
 
@@ -225,6 +229,11 @@ def adjust_orientation(conn, orientation):
     '''adjust accel and gyro cal for orientation'''
     print("Adjusting for AHRS_ORIENTATION %u" % orientation)
     if orientation == 0:
+        return
+
+    ins_calsensframe = util.param_value(conn.test, "INS_CALSENSFRAME")
+    if ins_calsensframe is not None:
+        print("Calibration done in sensor frame")
         return
 
     plist = {}
@@ -258,6 +267,12 @@ def accel_calibrate():
     print("Starting accel cal at %s" % time.ctime())
 
     conn = connection.Connection()
+
+    # lock the two telemetry ports to prevent the COMMAND_ACK messages in accel cal
+    # from looping back between the two telemetry ports
+    print("Locking telemetry ports")
+    util.lock_serial_port(conn.testmav, mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM1)
+    util.lock_serial_port(conn.testmav, mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM2)
 
     try:
         accel_calibrate_run(conn)

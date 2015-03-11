@@ -104,12 +104,6 @@ def check_mag(conn):
     print("Magnetometer OK")
 
 
-def serial_control_buf(str):
-    '''format for sending with SERIAL_CONTROL'''
-    buf = [ord(x) for x in str]
-    buf.extend([0]*(70-len(buf)))
-    return buf
-
 def serial_control_str(msg):
     '''handle receiving with SERIAL_CONTROL'''
     buf = msg.data
@@ -120,7 +114,7 @@ def serial_control_str(msg):
             break
         s += chr(c)
     return s
-    
+
 def check_serial_pair(testmav, port1, port2):
     '''check a pair of loopback serial ports'''
 
@@ -128,14 +122,14 @@ def check_serial_pair(testmav, port1, port2):
     flags = mavutil.mavlink.SERIAL_CONTROL_FLAG_EXCLUSIVE | mavutil.mavlink.SERIAL_CONTROL_FLAG_RESPOND | mavutil.mavlink.SERIAL_CONTROL_FLAG_MULTI
 
     # drain the serial ports
-    testmav.mav.serial_control_send(port1, flags, 100, 57600, 0, serial_control_buf(""))
-    testmav.mav.serial_control_send(port2, flags, 100, 57600, 0, serial_control_buf(""))
+    testmav.mav.serial_control_send(port1, flags, 100, 57600, 0, util.serial_control_buf(""))
+    testmav.mav.serial_control_send(port2, flags, 100, 57600, 0, util.serial_control_buf(""))
     util.discard_messages(testmav)
 
-    testmav.mav.serial_control_send(port1, flags, 10, 0, 5, serial_control_buf("TEST1"))
-    testmav.mav.serial_control_send(port2, flags, 10, 0, 5, serial_control_buf("TEST2"))
-    testmav.mav.serial_control_send(port1, flags, 10, 0, 5, serial_control_buf("TEST1"))
-    testmav.mav.serial_control_send(port2, flags, 10, 0, 5, serial_control_buf("TEST2"))
+    testmav.mav.serial_control_send(port1, flags, 10, 0, 5, util.serial_control_buf("TEST1"))
+    testmav.mav.serial_control_send(port2, flags, 10, 0, 5, util.serial_control_buf("TEST2"))
+    testmav.mav.serial_control_send(port1, flags, 10, 0, 5, util.serial_control_buf("TEST1"))
+    testmav.mav.serial_control_send(port2, flags, 10, 0, 5, util.serial_control_buf("TEST2"))
 
     start_time = time.time()
     port1_ok = False

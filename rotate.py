@@ -223,9 +223,9 @@ def gyro_integrate(conn):
         err = test_sum[idx] - ref_sum
         if abs(err.x) > GYRO_SUM_TOLERANCE:
             util.failure("X gyro %u error: %.1f" % (idx, err.x))
-        if abs(err.y) > 5:
+        if abs(err.y) > GYRO_SUM_TOLERANCE:
             util.failure("Y gyro %u error: %.1f" % (idx, err.y))
-        if abs(err.z) > 5:
+        if abs(err.z) > GYRO_SUM_TOLERANCE:
             util.failure("Z gyro %u error: %.1f" % (idx, err.z))
 
 

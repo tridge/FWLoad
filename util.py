@@ -79,7 +79,10 @@ def wait_field(refmav, msg_type, field):
 def param_value(test, pname):
     '''get a param value given a mavproxy connection'''
     test.send('param fetch %s\n' % pname)
-    test.expect('%s\s+=\s+(-?\d+\.\d+)\r\n' % pname)
+    try:
+        test.expect('%s\s+=\s+(-?\d+\.\d+)\r\n' % pname, timeout=3)
+    except Exception as ex:
+        return None
     return float(test.match.group(1))
 
 def param_set(test, pname, value):
@@ -203,3 +206,15 @@ def gyro_vector(raw_imu):
     return Vector3(degrees(raw_imu.xgyro*0.001),
                    degrees(raw_imu.ygyro*0.001),
                    degrees(raw_imu.zgyro*0.001))
+
+def serial_control_buf(str):
+    '''format for sending with SERIAL_CONTROL'''
+    buf = [ord(x) for x in str]
+    buf.extend([0]*(70-len(buf)))
+    return buf
+
+def lock_serial_port(testmav, port):
+    '''lock a serial port'''
+    flags = mavutil.mavlink.SERIAL_CONTROL_FLAG_EXCLUSIVE
+    testmav.mav.serial_control_send(port, flags, 0, 0, 0, serial_control_buf(""))
+    

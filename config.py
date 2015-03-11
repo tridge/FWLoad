@@ -59,7 +59,7 @@ TEMPERATURE_TOLERANCE = 20
 VOLTAGE_TOLERANCE = 0.4
 
 # tolerance in gyro integration
-GYRO_SUM_TOLERANCE = 8.0
+GYRO_SUM_TOLERANCE = 10.0
 
 # TILT_TOLERANCE1 is the tilt tolerance for the isolated sensors. We expect that these
 # may be off by a few degrees, which we correct with AHRS trim

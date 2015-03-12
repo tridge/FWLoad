@@ -55,7 +55,7 @@ REF_GYRO_TOLERANCE = 10.0
 # tolerances for the various sensors when testing against the
 # reference board
 PRESSURE_TOLERANCE = 10
-TEMPERATURE_TOLERANCE = 20
+TEMPERATURE_TOLERANCE = 30
 VOLTAGE_TOLERANCE = 0.4
 
 # tolerance in gyro integration

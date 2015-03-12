@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-connect to nsh console
+connect to reference board
 '''
 
 import pexpect, sys

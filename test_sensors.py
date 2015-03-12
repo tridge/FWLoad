@@ -20,11 +20,11 @@ def check_accel_cal(conn):
         for axis in ['X', 'Y', 'Z']:
             pname = 'INS_ACC%sOFFS_%s' % (n, axis)
             ofs = util.param_value(conn.test, pname)
-            if abs(ofs) < 0.000001:
+            if abs(ofs) < 1.0e-10:
                 util.failure("%s is zero - accel %u not calibrated (offset) %f" % (pname, idx, ofs))
             pname = 'INS_ACC%sSCAL_%s' % (n, axis)
             ofs = util.param_value(conn.test, pname)
-            if abs(ofs-1.0) < 0.000001:
+            if abs(ofs-1.0) < 1.0e-10:
                 util.failure("%s is zero - accel %u not calibrated (scale)" % (pname, idx))
         print("Accel cal %u OK" % (idx+1))
 

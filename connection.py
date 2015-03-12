@@ -76,13 +76,14 @@ class Connection(object):
 
         try:
             if not ref_only:
-                print("CONNECTING MAVLINK TO TEST BOARD")
+                print("CONNECTING MAVLINK TO TEST BOARD at %s" % time.ctime())
                 self.testmav = mavutil.mavlink_connection('127.0.0.1:14551')
                 util.wait_heartbeat(self.testmav, timeout=30)
+                print("got heartbeat at %s" % time.ctime())
                 util.wait_mode(self.testmav, IDLE_MODES)
         except Exception as ex:
             self.close()
-            util.show_error('Connecting to test board2', ex, self.testlog)
+            util.show_error('Connecting to test board2 at %s' % time.ctime(), ex, self.testlog)
 
         try:
             if not ref_only and not ref_gyro_offset_ok(self.refmav):

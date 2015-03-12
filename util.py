@@ -127,6 +127,7 @@ def kill_processes(process_list):
     from subprocess import call
     for p in process_list:
         call(['/usr/bin/pkill', '-9', '-f', p])
+    reap_children()
 
 def wait_heartbeat(mav, timeout=10):
     '''wait for a heartbeat'''
@@ -218,3 +219,11 @@ def lock_serial_port(testmav, port):
     flags = mavutil.mavlink.SERIAL_CONTROL_FLAG_EXCLUSIVE
     testmav.mav.serial_control_send(port, flags, 0, 0, 0, serial_control_buf(""))
     
+
+def reap_children():
+    '''reap any child processes'''
+    try:
+        while True:
+            os.waitpid(-1, os.WNOHANG)
+    except OSError:
+        pass

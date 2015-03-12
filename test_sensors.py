@@ -187,6 +187,46 @@ def check_status(conn):
             util.failure("Test board %s failure in SYS_STATUS" % bit)
         print("%s status OK" % bit)
 
+def check_pwm(conn):
+    '''check PWM output and RC input'''
+    print("Checking PWM out and RC in")
+
+    # disable safety on test board
+    conn.test.send('arm safetyoff\n')
+    test_values = [ 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800 ]
+    # quad remaps the first 4 to a different order
+    map_values = [ 1100, 1300, 1400, 1200, 1500, 1600, 1700, 1800 ]
+
+    # we need to send the MOTOR_TEST command multuple times to avoid a race
+    # condition in ArduCopter motor_test.pde
+    for repeat in range(10):
+        for i in range(1,5):
+            conn.testmav.mav.command_long_send(0, 0,
+                                               mavutil.mavlink.MAV_CMD_DO_MOTOR_TEST, 0,
+                                               i, 1, test_values[i-1], 300,
+                                               0, 0, 0)
+            time.sleep(0.05)
+    for i in range(5,9):
+        conn.test.send('servo set %u %u\n' % (i, test_values[i-1]))
+    time.sleep(0.5)
+    util.discard_messages(conn.testmav)
+    rcin = conn.testmav.recv_match(type='RC_CHANNELS_RAW', blocking=True, timeout=3)
+    if rcin is None:
+        util.failure("Failed to get RC input")
+
+    servo = conn.testmav.recv_match(type='SERVO_OUTPUT_RAW', blocking=True, timeout=3)
+    if servo is None:
+        util.failure("Failed to get servo output")
+
+    pwm_ok = True
+    for i in range(8):
+        rc    = getattr(rcin, 'chan{0}_raw'.format(i+1))
+        servoval = getattr(servo, 'servo{0}_raw'.format(i+1))
+        if abs(rc - map_values[i]) > 3:
+            pwm_ok = False
+        print("pwm_check[%u] rc=%u test=%u servo=%u" % (i, rc, map_values[i], servoval))
+    if not pwm_ok:
+        util.failure("Incorrect PWM passthrough")
 
 def check_all_sensors(conn):
     '''run all sensor checks'''
@@ -195,6 +235,7 @@ def check_all_sensors(conn):
     check_power(conn)
     check_serial(conn)
     check_status(conn)
+    check_pwm(conn)
     
 
 if __name__ == '__main__':

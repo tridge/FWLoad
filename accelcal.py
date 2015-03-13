@@ -196,6 +196,10 @@ def accel_calibrate_run(conn):
     rotate.set_rotation(conn, 'level', wait=False)
     util.safety_off(conn.refmav)
 
+    util.param_set(conn.ref, 'THR_FAILSAFE', 0)
+    util.param_set(conn.ref, 'RCMAP_ROLL', 5)
+    util.param_set(conn.ref, 'RCMAP_PITCH', 6)
+
     # use zero trims on reference board
     util.param_set(conn.ref, 'AHRS_TRIM_X', 0)
     util.param_set(conn.ref, 'AHRS_TRIM_Y', 0)

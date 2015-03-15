@@ -46,7 +46,7 @@ ROTATION_TOLERANCE = 5.0
 
 # tolerance of quiescent state in degrees/second. This is how still
 # the jig needs to be between movements of the servos
-GYRO_TOLERANCE = 0.2
+GYRO_TOLERANCE = 0.3
 
 # if gyro offsets are off by more than this value then the ref board was probably moving
 # and we need to power cycle
@@ -76,12 +76,12 @@ TILT_TOLERANCE3 = 2.5
 # yaw in body frame
 YAW_CHANNEL = 2
 # Yaw movement rate. +100 change == -22 degrees
-YAW_SCALE = -22.0 / 100
+YAW_SCALE = -47.0 / 100
 
 # pitch in earth frame
 PITCH_CHANNEL = 1
 # pitch movement rate. +100 change == -34 degrees
-PITCH_SCALE = -34.0/100
+PITCH_SCALE = -38.0/100
 
 # acceptable modes when the test board is idle. This works for both
 # plane and copter
@@ -102,12 +102,12 @@ class Rotation(object):
         self.pitch = pitch
 
 ROTATIONS = {
-    'level' : Rotation(1272, 1664,    0,    0),
-    'right' : Rotation(853,  1403,   90,    0),
-    'left'  : Rotation(1669, 1398,  -90,    0),
-    'up'    : Rotation(1260, 1400,  None,  90),
-    'down'  : Rotation(2061, 1385,  None, -90),
-    'back'  : Rotation(1254, 1155,  180,    0),
+    'level' : Rotation(1651, 1781,    0,    0),
+    'right' : Rotation(1015, 1126,   90,    0),
+    'left'  : Rotation(1852, 1566,  -90,    0),
+    'up'    : Rotation(1228, 1124,  None,  90),
+    'down'  : Rotation(2058, 1567,  None, -90),
+    'back'  : Rotation(1266, 1350,  180,    0),
     'slant' : Rotation(1094, 1584,   30,   30)
     }
 

@@ -136,6 +136,11 @@ def wait_gyros_healthy(conn):
     util.param_set(conn.test, 'AHRS_ORIENTATION', 0)
     util.param_set(conn.ref, 'AHRS_ORIENTATION', 0)
 
+    # setup right reference board parameters, in case someone has reset them
+    util.param_set(conn.ref, 'THR_FAILSAFE', 0)
+    util.param_set(conn.ref, 'RCMAP_ROLL', 5)
+    util.param_set(conn.ref, 'RCMAP_PITCH', 6)
+
     # give time for 1Hz loop to set orientation
     time.sleep(2)
 
@@ -195,10 +200,6 @@ def accel_calibrate_run(conn):
     print("Turning safety off")
     rotate.set_rotation(conn, 'level', wait=False)
     util.safety_off(conn.refmav)
-
-    util.param_set(conn.ref, 'THR_FAILSAFE', 0)
-    util.param_set(conn.ref, 'RCMAP_ROLL', 5)
-    util.param_set(conn.ref, 'RCMAP_PITCH', 6)
 
     # use zero trims on reference board
     util.param_set(conn.ref, 'AHRS_TRIM_X', 0)

@@ -148,7 +148,7 @@ def wait_gyros_healthy(conn):
     ref_gyros_healthy = False
     test_gyros_healthy = False
     conn.discard_messages()
-    while time.time() < start_time + 10 and (not ref_gyros_healthy or not test_gyros_healthy):
+    while time.time() < start_time + 20 and (not ref_gyros_healthy or not test_gyros_healthy):
         ref_sys_status = conn.refmav.recv_match(type='SYS_STATUS', blocking=True, timeout=1)
         if ref_sys_status:
             ref_gyros_healthy = (ref_sys_status.onboard_control_sensors_health & mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO) != 0

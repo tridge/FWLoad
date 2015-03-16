@@ -81,6 +81,8 @@ class Connection(object):
                 util.wait_heartbeat(self.testmav, timeout=30)
                 print("got heartbeat at %s" % time.ctime())
                 util.wait_mode(self.testmav, IDLE_MODES)
+                print("Waiting for 'Ready to FLY'")
+                self.test.expect('Ready to FLY', timeout=20)
         except Exception as ex:
             self.close()
             util.show_error('Connecting to test board2 at %s' % time.ctime(), ex, self.testlog)

@@ -124,12 +124,15 @@ def load_all_firmwares(retries=3):
 
         try:
             load_firmware(IO_JTAG, FW_IO, CPUID_IO)
-            load_firmware(IO_JTAG, BL_IO, CPUID_IO, run=True)
+            load_firmware(IO_JTAG, BL_IO, CPUID_IO)
 
             load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)
-            load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU, run=True)
+            load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU)
         except Exception as ex:
             continue
+
+        # power cycle after loading to ensure the boards can come up cleanly
+        power_control.power_cycle(down_time=4)
 
         if util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
             break
@@ -137,13 +140,6 @@ def load_all_firmwares(retries=3):
             print("RETRIES %u - TRYING AGAIN" % retries)
     if retries == 0:
         print("FAILED TO LOAD FIRMWARES")
-        return False
-
-    # power cycle after loading to ensure the boards can come up cleanly
-    power_control.power_cycle(down_time=4)
-
-    if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
-        print("Failed to find USB devices")
         return False
 
     print("All firmwares loaded OK")

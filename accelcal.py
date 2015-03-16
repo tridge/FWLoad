@@ -130,7 +130,6 @@ def wait_gyros_healthy(conn):
     '''wait for gyros to be healthy'''
     util.wait_heartbeat(conn.testmav)
 
-    print("Recalibrating gyro")
     # we must have AHRS_ORIENTATION 0 for the accelcal
     # we will fix for AHRS_ORIENTATION=12 later
     util.param_set(conn.test, 'AHRS_ORIENTATION', 0)
@@ -144,10 +143,6 @@ def wait_gyros_healthy(conn):
     # give time for 1Hz loop to set orientation
     time.sleep(2)
 
-    # then recalibrate
-    conn.test.send('gyrocal\n')
-    conn.test.expect('Calibrated')
-    
     print("Waiting for gyro health")
     start_time = time.time()
     ref_gyros_healthy = False

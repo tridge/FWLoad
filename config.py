@@ -102,12 +102,12 @@ class Rotation(object):
         self.pitch = pitch
 
 ROTATIONS = {
-    'level' : Rotation(1651, 1781,    0,    0),
-    'right' : Rotation(1015, 1126,   90,    0),
-    'left'  : Rotation(1852, 1566,  -90,    0),
-    'up'    : Rotation(1228, 1124,  None,  90),
-    'down'  : Rotation(2058, 1567,  None, -90),
-    'back'  : Rotation(1266, 1350,  180,    0),
+    'level' : Rotation(1716, 1522,    0,    0),
+    'right' : Rotation(1007, 864,   90,    0),
+    'left'  : Rotation(1857, 1300,  -90,    0),
+    'up'    : Rotation(1230, 865,  None,  90),
+    'down'  : Rotation(2058, 1303,  None, -90),
+    'back'  : Rotation(1308, 1091,  180,    0),
     'slant' : Rotation(1094, 1584,   30,   30)
     }
 

@@ -3,7 +3,7 @@ config for factory test rig
 '''
 
 from math import *
-import os
+import os, sys
 
 GDB="arm-none-eabi-gdb"
 

@@ -12,6 +12,7 @@ import sys, os
 import logging
 import colour_text
 import connection
+import barcode
 from config import *
 
 # disable stdout buffering
@@ -32,6 +33,9 @@ if args.monitor:
     REMOTE_MONITOR['test'] = args.monitor + ":16551"
 
 colour_text.print_blue("Starting up")
+
+# start the barcode monitoring thread
+barcode.monitor_scanner()
 
 def factory_install():
     '''main factory installer'''
@@ -91,12 +95,23 @@ def factory_install():
         tee.close()
         return False
 
+    device_barcode = barcode.get_barcode()
+    if not device_barcode:
+        colour_text.print_fail('''
+==========================================
+| FAILED: barcode not detected
+==========================================
+''')
+        tee.close()
+        return False
+
     # all OK
     colour_text.print_green('''
 ================================================
+| Device: %s
 | PASSED: Factory install complete (%u seconds)
 ================================================
-''' %  (time.time() - start_time))
+''' %  (device_barcode, (time.time() - start_time)))
     tee.close()
     return True
 

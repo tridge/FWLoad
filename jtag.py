@@ -129,6 +129,7 @@ def load_all_firmwares(retries=3):
             load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)
             load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU)
         except Exception as ex:
+            print("error loading firmwares %s" % ex)
             continue
 
         # power cycle after loading to ensure the boards can come up cleanly

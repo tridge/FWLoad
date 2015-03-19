@@ -11,6 +11,9 @@ GDB="arm-none-eabi-gdb"
 FMU_BMAGIC_SERIAL=[ "B5D9B0CD", "B5DFB7C6" ]
 IO_BMAGIC_SERIAL=[ "B5DBB0CE", "B5DDB7C5" ]
 
+# serial numbers of the barcode scanners
+BARCODE_SCANNER_SERIAL=[ "16C0_XXXXXX" ]
+
 FW_IO="FW/px4io.elf"
 BL_IO="FW/px4io_bl.elf"
 
@@ -131,3 +134,15 @@ if FMU_JTAG is None:
 if IO_JTAG is None:
     print("No JTAG device for IO found")
     sys.exit(1)
+
+# find the bardode scanner
+BARCODE_SCANNER = None
+for id in BARCODE_SCANNER_SERIAL:
+    p = "/dev/serial/by-id/usb-LineFotuneImaging___Mobility_%s-if00" % id
+    if os.path.exists(p):
+        BARCODE_SCANNER = p
+
+if BARCODE_SCANNER is None:
+    print("No barcode scanner found")
+    sys.exit(1)
+

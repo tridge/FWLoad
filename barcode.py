@@ -18,10 +18,14 @@ def handle_data(data):
 
 def read_from_port(ser):
     while True:
-        raw_data = tty.read(1)
-        if raw_data:
-            raw_data += ser.read(ser.inWaiting())
-            handle_data(raw_data)
+        try:
+            raw_data = tty.read(1)
+            if raw_data:
+                raw_data += ser.read(ser.inWaiting())
+                handle_data(raw_data)
+        except Exception as ex:
+            #continue
+            raise ex
 
 def monitor_scanner():
     thread = threading.Thread(target=read_from_port, args=(tty,))

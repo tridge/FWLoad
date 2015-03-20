@@ -7,6 +7,7 @@ import pexpect, sys, time
 from math import *
 from config import *
 import util
+import logger
 from pymavlink import mavutil
 from pymavlink.rotmat import Matrix3, Vector3
 from pymavlink.quaternion import Quaternion
@@ -75,9 +76,16 @@ def wait_quiescent(mav, type='RAW_IMU'):
         raw_imu = mav.recv_match(type=type, blocking=True, timeout=4)
         if raw_imu is None:
             util.failure("communication with board lost for %s" % type)
+        if time.time() > t1+10:
+            logger.debug("x not quiescent: %s" % abs(degrees(raw_imu.xgyro*0.001)))
+            logger.debug("y not quiescent: %s" % abs(degrees(raw_imu.ygyro*0.001)))
+            logger.debug("z not quiescent: %s" % abs(degrees(raw_imu.zgyro*0.001)))
         if (abs(degrees(raw_imu.xgyro*0.001)) < GYRO_TOLERANCE and
             abs(degrees(raw_imu.ygyro*0.001)) < GYRO_TOLERANCE and
             abs(degrees(raw_imu.zgyro*0.001)) < GYRO_TOLERANCE):
+            logger.debug("x is  quiescent: %s" % abs(degrees(raw_imu.xgyro*0.001)))
+            logger.debug("y is  quiescent: %s" % abs(degrees(raw_imu.ygyro*0.001)))
+            logger.debug("z is  quiescent: %s" % abs(degrees(raw_imu.zgyro*0.001)))
             break
     if raw_imu is None:
         util.failure("Failed to reach quiescent state")
@@ -125,10 +133,10 @@ def optimise_attitude(conn, rotation, tolerance):
         (chan1_change, chan2_change) = gimbal_controller(dcm_estimated,
                                                          dcm_demanded, chan1)
         (err_roll, err_pitch) = attitude_error(attitude, expected_roll, expected_pitch)
-        print("%s error: %.2f %.2f chan1=%u chan2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
+        logger.debug("%s offsets: %.2f %.2f chan1=%u chan2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
         if (tries > 0 and (abs(err_roll)+abs(err_pitch) < tolerance or
                            (abs(chan1_change)<1 and abs(chan2_change)<1))):
-            print("%s converged %.2f %.2f tolerance %.1f at %s" % (rotation, err_roll, err_pitch, tolerance, time.ctime()))
+            logger.info("%s converged %.2f %.2f tolerance %.1f at %s" % (rotation, err_roll, err_pitch, tolerance, time.ctime()))
             # update optimised rotations to save on convergence time for the next board
             ROTATIONS[rotation].chan1 = chan1
             ROTATIONS[rotation].chan2 = chan2
@@ -136,14 +144,14 @@ def optimise_attitude(conn, rotation, tolerance):
         chan1 += chan1_change
         chan2 += chan2_change
         if chan1 < 700 or chan1 > 2300 or chan2 < 700 or chan2 > 2300:
-            print("servos out of range - failed")
+            logger.debug("servos out of range - failed")
             return False
         util.set_servo(conn.refmav, YAW_CHANNEL, chan1)
         util.set_servo(conn.refmav, PITCH_CHANNEL, chan2)
         attitude = wait_quiescent(conn.refmav)
         tries += 1
         
-    print("timed out rotating to %s" % rotation)
+    prin("timed out rotating to %s" % rotation)
     return False
 
 def set_rotation(conn, rotation, wait=True):
@@ -179,7 +187,7 @@ def gyro_integrate(conn):
     util.param_set(conn.ref, 'SR0_RAW_SENS', 20)
     util.param_set(conn.test, 'SR0_RAW_SENS', 20)
 
-    print("Starting gyro integration at %s" % time.ctime())
+    logger.info("Starting gyro integration at %s" % time.ctime())
     wait_quiescent(conn.refmav)
     conn.discard_messages()
 
@@ -215,10 +223,10 @@ def gyro_integrate(conn):
                 deltat = tnow - test_tstart[idx]
                 test_sum[idx] += gyro * deltat
             test_tstart[idx] = tnow
-    print("Gyro ref  sums: ", ref_sum)
-    print("Gyro test sum1: ", test_sum[0])
-    print("Gyro test sum2: ", test_sum[1])
-    print("Gyro test sum3: ", test_sum[2])
+    logger.debug("Gyro ref  sums: %s" % ref_sum)
+    logger.debug("Gyro test sum1: %s" % test_sum[0])
+    logger.debug("Gyro test sum2: %s" % test_sum[1])
+    logger.debug("Gyro test sum3: %s" % test_sum[2])
     for idx in range(3):
         err = test_sum[idx] - ref_sum
         if abs(err.x) > GYRO_SUM_TOLERANCE:
@@ -231,7 +239,7 @@ def gyro_integrate(conn):
 
 def unjam_servos(conn):
     '''try to unjam servos with random movement'''
-    print("Starting unjamming")
+    logger.info("Starting unjamming")
     conn.discard_messages()
 
     rotations = ROTATIONS.keys()
@@ -243,15 +251,15 @@ def unjam_servos(conn):
         imu = conn.refmav.recv_match(type='RAW_IMU', blocking=False)
         if imu is not None:
             gyro = util.gyro_vector(imu)
-            print('Gyro: %s' % gyro)
+            logger.info('Gyro: %s' % gyro)
             if abs(gyro.x) > 5 or abs(gyro.y) > 5:
-                print("Unjammed: ", gyro)
+                logger.info("Unjammed: ", gyro)
                 break
         if time.time() > last_change+0.7:
             last_change = time.time()
             r1 = int(random.uniform(800, 2100))
             r2 = int(random.uniform(800, 2100))
-            print(r1, r2)
+            logger.debug("%s %s" % (r1, r2))
             util.set_servo(conn.refmav, YAW_CHANNEL, r1)
             util.set_servo(conn.refmav, PITCH_CHANNEL, r2)
             

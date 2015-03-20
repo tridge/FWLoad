@@ -13,6 +13,7 @@ import mav_reference
 import mav_test
 import power_control
 import connection
+import logger
 from pymavlink.rotmat import Matrix3, Vector3
 
 def adjust_ahrs_trim(conn, level_attitude):
@@ -86,7 +87,7 @@ def adjust_ahrs_trim(conn, level_attitude):
     yaw_error2 = test_yaw2 - ref_yaw
     yaw_error3 = test_yaw3 - ref_yaw
 
-    print("Tilt Ref=(%.1f %.1f %.1f) Test1=(%.1f %.1f %.1f) Test2=(%.1f %.1f %.1f) Test3=(%.1f %.1f %.1f)" % (
+    logger.debug("Tilt Ref=(%.1f %.1f %.1f) Test1=(%.1f %.1f %.1f) Test2=(%.1f %.1f %.1f) Test3=(%.1f %.1f %.1f)" % (
         ref_roll, ref_pitch, ref_yaw,
         test_roll1, test_pitch1, test_yaw1,
         test_roll2, test_pitch2, test_yaw2,
@@ -97,7 +98,7 @@ def adjust_ahrs_trim(conn, level_attitude):
         abs(ref_yaw) > ROTATION_TOLERANCE):
         util.failure("Reference board rotation error")
 
-    print("Tilt errors: Roll(%.1f %.1f %.1f) Pitch(%.1f %.1f %.1f) Yaw(%.1f %.1f %.1f) " % (
+    logger.debug("Tilt offsets: Roll(%.1f %.1f %.1f) Pitch(%.1f %.1f %.1f) Yaw(%.1f %.1f %.1f) " % (
         roll_error1, roll_error2, roll_error3,
         pitch_error1, pitch_error2, pitch_error3,
         yaw_error1, yaw_error2, yaw_error3))
@@ -123,7 +124,7 @@ def adjust_ahrs_trim(conn, level_attitude):
     time.sleep(0.2)
     util.param_set(conn.test, 'AHRS_TRIM_Y', trim_y)
     time.sleep(0.2)
-    print("Set trims AHRS_TRIM_X=%.4f AHRS_TRIM_Y=%.4f" % (trim_x, trim_y))
+    logger.debug("Set trims AHRS_TRIM_X=%.4f AHRS_TRIM_Y=%.4f" % (trim_x, trim_y))
     
 
 def wait_gyros_healthy(conn):
@@ -143,7 +144,7 @@ def wait_gyros_healthy(conn):
     # give time for 1Hz loop to set orientation
     time.sleep(2)
 
-    print("Waiting for gyro health")
+    logger.info("Waiting for gyro health")
     start_time = time.time()
     ref_gyros_healthy = False
     test_gyros_healthy = False
@@ -156,12 +157,12 @@ def wait_gyros_healthy(conn):
         if test_sys_status:
             test_gyros_healthy = (test_sys_status.onboard_control_sensors_health & mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO) != 0
     if not ref_gyros_healthy:
-        print("Failed to get healthy reference gyros")
+        logger.error("Failed to get healthy reference gyros")
         return False
     if not test_gyros_healthy:
-        print("Failed to get healthy test gyros")
+        logger.error("Failed to get healthy test gyros")
         return False
-    print("Gyros are healthy")
+    logger.info("Gyros are healthy")
     return True
 
 def wait_gyros(conn):
@@ -172,27 +173,27 @@ def wait_gyros(conn):
         if not wait_gyros_healthy(conn):
             util.failure("Failed to get healthy gyros")
         rotate.wait_quiescent(conn.refmav)
-        print("Reference is quiescent")
+        logger.info("Reference is quiescent")
         try:
             rotate.wait_quiescent_list(conn.testmav, ['RAW_IMU', 'SCALED_IMU2', 'SCALED_IMU3'])
-            print("Test is quiescent")
+            logger.info("Test is quiescent")
         except Exception as ex:
-            print("Recalibrating gyros : %s" % ex)
+            logger.debug("Recalibrating gyros : %s" % ex)
             conn.test.send('gyrocal\n')
             conn.expect('Calibrated')
             continue
         break
     if tries == 0:
         util.failure("Failed waiting for gyros")
-    print("Gyros ready")
+    logger.info("Gyros ready")
 
 def accel_calibrate_run(conn):
     '''run accelcal'''
-    print("STARTING ACCEL CALIBRATION")
+    logger.info("STARTING ACCEL CALIBRATION")
 
     wait_gyros(conn)
 
-    print("Turning safety off")
+    logger.info("Turning safety off")
     rotate.set_rotation(conn, 'level', wait=False)
     util.safety_off(conn.refmav)
 
@@ -215,12 +216,12 @@ def accel_calibrate_run(conn):
         conn.test.send("\n")
     i = conn.test.expect(["Calibration successful","Calibration FAILED"])
     if i != 0:
-        print(conn.test.before)
-        print("Calibration FAILED")
+        logger.error(conn.test.before)
+        logger.error("Calibration FAILED")
         util.show_tail(conn.testlog)
         util.failure("Accel calibration failed at %s" % time.ctime())
-    print(conn.test.before)
-    print("Calibration successful")
+    #logger.info(conn.test.before)
+    logger.info("Calibration successful")
     rotate.set_rotation(conn, 'level', wait=False)
     adjust_ahrs_trim(conn, level_attitude)
 
@@ -228,13 +229,13 @@ def accel_calibrate_run(conn):
 def accel_calibrate():
     '''run full accel calibration'''
 
-    print("Starting accel cal at %s" % time.ctime())
+    logger.info("Starting accel cal at %s" % time.ctime())
 
     conn = connection.Connection()
 
     # lock the two telemetry ports to prevent the COMMAND_ACK messages in accel cal
     # from looping back between the two telemetry ports
-    print("Locking telemetry ports")
+    logger.info("Locking telemetry ports")
     util.lock_serial_port(conn.testmav, mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM1)
     util.lock_serial_port(conn.testmav, mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM2)
 
@@ -244,7 +245,7 @@ def accel_calibrate():
         test_sensors.check_gyro_cal(conn)
     except Exception as ex:
         conn.close()
-        util.show_error('Accel calibration complete', ex)
+        util.show_error('Accel calibration complete???',  ex)
 
     try:
         # we run the sensor checks from here to avoid re-opening the links
@@ -254,10 +255,10 @@ def accel_calibrate():
         util.show_error('Test sensors failed', ex)
 
     try:
-        print("Loading factory parameters")
+        logger.info("Loading factory parameters")
         conn.test.send('param load %s\n' % FACTORY_PARM)
         conn.test.expect('Loaded \d+ parameters from')
-        print("Parameters loaded OK")
+        logger.info("Parameters loaded OK")
     except Exception as ex:
         conn.close()
         util.show_error('Parameter load failed', ex)
@@ -271,31 +272,31 @@ def accel_calibrate_retries(retries=4):
     while retries > 0:
         retries -= 1
         if not util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
-            print("FAILED to find USB test and reference devices")
+            logger.error("FAILED to find USB test and reference devices")
             power_control.power_cycle(down_time=4)
             continue
         try:
             time.sleep(2)
             accel_calibrate()
         except Exception as ex:
-            print("accel cal failed: %s" % ex)
+            logger.error("accel cal failed: %s" % ex)
             if retries > 0:
-                print("RETRYING ACCEL CAL")
+                logger.info("RETRYING ACCEL CAL")
                 power_control.power_cycle(down_time=4)
             continue
-        print("PASSED ACCEL CAL")
+        logger.info("PASSED ACCEL CAL")
         return True
-    print("accelcal: no more retries")
+    logger.error("accelcal: no more retries")
     return False
 
 
 def accel_calibrate_reference():
     '''run accelcal on reference board'''
-    print("STARTING REFERENCE ACCEL CALIBRATION")
+    logger.info("STARTING REFERENCE ACCEL CALIBRATION")
 
     conn = connection.Connection(ref_only=True)
 
-    print("Turning safety off")
+    logger.info("Turning safety off")
     rotate.set_rotation(conn, 'level', wait=False)
     util.safety_off(conn.refmav)
 
@@ -306,14 +307,14 @@ def accel_calibrate_reference():
             conn.ref.expect("and press any key")
         except Exception as ex:
             util.failure("Failed to get place vehicle message for %s" % rotation)
-        print("Rotating %s" % rotation)
+        logger.debug("Rotating %s" % rotation)
         attitude = rotate.set_rotation(conn, rotation, wait=False)
         time.sleep(13)
         conn.ref.send("\n")
     i = conn.ref.expect(["Calibration successful","Calibration FAILED"])
     if i != 0:
         util.failure("Accel calibration failed at %s" % time.ctime())
-    print("Calibration successful")
+    logger.info("Calibration successful")
     rotate.set_rotation(conn, 'level', wait=False)
     util.param_set(conn.ref, 'AHRS_TRIM_X', 0)
     util.param_set(conn.ref, 'AHRS_TRIM_Y', 0)

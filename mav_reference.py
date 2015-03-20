@@ -5,12 +5,12 @@ connect to reference board
 
 import pexpect, sys
 from config import *
-import logging
+import logger
 
 def mav_reference(reflog=None, extra_args=None):
     '''connect to reference board'''
-    print("CONNECTING TO REFERENCE BOARD")
-    logfile = logging.new_tlog("RefBoard")
+    logger.info("CONNECTING TO REFERENCE BOARD")
+    logfile = logger.new_tlog("RefBoard")
     cmd = "mavproxy.py --master %s --out 127.0.0.1:14550 --logfile %s" % (USB_DEV_REFERENCE, logfile)
     if REMOTE_MONITOR['ref']:
         cmd += " --out %s" % REMOTE_MONITOR['ref']

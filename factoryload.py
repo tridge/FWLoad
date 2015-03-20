@@ -3,17 +3,26 @@
   run factory load, calibration and test
 '''
 
+from config import *
+import logger
 import accelcal
 import jtag
 import power_control
 import time
 import util
-import sys, os
-import logging
+import sys, os, fcntl
+import logger
 import colour_text
 import connection
 import barcode
-from config import *
+import savedstate
+
+fh = open(os.path.realpath(__file__), 'r')
+try:
+    fcntl.flock(fh, fcntl.LOCK_EX|fcntl.LOCK_NB)
+except:
+    print("another instance of this script is already running. exiting...")
+    sys.exit(0)
 
 # disable stdout buffering
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
@@ -34,9 +43,6 @@ if args.monitor:
 
 colour_text.print_blue("Starting up")
 
-# start the barcode monitoring thread
-barcode.monitor_scanner()
-
 def factory_install():
     '''main factory installer'''
     start_time = time.time()
@@ -44,10 +50,8 @@ def factory_install():
     if not args.test:
         colour_text.clear_screen()
 
-    logdir = logging.new_log_dir()
-
-    print("Logging to %s" % logdir)
-    tee = util.Tee(os.path.join(logdir, "run.log"))
+    logdir = logger.get_log_dir()
+    logger.info("Logging to %s" % logdir)
 
     colour_text.print_blue('''
 =======================
@@ -55,7 +59,7 @@ def factory_install():
 =======================
 ''')
 
-    print(time.ctime())
+    logger.info(time.ctime())
     
     if args.erase:
         if not jtag.erase_firmwares():
@@ -64,7 +68,7 @@ def factory_install():
 | FAILED: JTAG firmware erase failed
 ======================================
 ''')
-            tee.close()
+            logger.critical("JTAG firmware erase failed")
             return False
     
     if not args.nofw and not jtag.load_all_firmwares(retries=3):
@@ -73,37 +77,39 @@ def factory_install():
 | FAILED: JTAG firmware install failed
 ======================================
 ''')
-        tee.close()
+        logger.critical("JTAG firmware install failed")
         return False
 
     if args.erase:
         if not connection.erase_parameters():
             colour_text.print_fail('''
 ==========================================
-| FAILED: failed to erase parameters
+| FAILED: Failed to erase parameters
 ==========================================
 ''')
-            tee.close()
+            logger.critical("Failed to erase parameters")
             return False
 
     if not accelcal.accel_calibrate_retries(retries=4):
         colour_text.print_fail('''
 ==========================================
-| FAILED: accelerometer calibration failed
+| FAILED: Accelerometer calibration failed
 ==========================================
 ''')
-        tee.close()
+        logger.critical("Accelerometer calibration failed")
         return False
 
     device_barcode = barcode.get_barcode()
     if not device_barcode:
         colour_text.print_fail('''
 ==========================================
-| FAILED: barcode not detected
+| FAILED: Barcode not detected
 ==========================================
 ''')
-        tee.close()
+        logger.critical("Barcode not detected")
         return False
+    # log the barcode
+    logger.info("Barcode detected: %s" % device_barcode)
 
     # all OK
     colour_text.print_green('''
@@ -112,10 +118,18 @@ def factory_install():
 | PASSED: Factory install complete (%u seconds)
 ================================================
 ''' %  (device_barcode, (time.time() - start_time)))
-    tee.close()
+    logger.info("Factory install complete (%u seconds)" % (time.time() - start_time))
     return True
 
+# start the barcode monitoring thread
+barcode.monitor_scanner()
+
+# load the jig state file
+savedstate.init()
+
 while True:
+    jigstate = savedstate.get()
+    logger.info("jigstate: current_cycles = %i" % jigstate['current_cycles'])
 
     util.kill_processes(['mavproxy.py', GDB])
 
@@ -124,14 +138,18 @@ while True:
         power_control.power_cycle()
     else:
         # wait for the power to be switched off
-        print("waiting for power off")
+        logger.info("waiting for power off")
         util.wait_no_device([FMU_JTAG, IO_JTAG], timeout=600)
 
     # wait for the power to come on again
     while not util.wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
-        print("waiting for power up....")
+        logger.info("waiting for power up....")
 
     ret = factory_install()
+
+    # increment the cycles counters
+    savedstate.incr('current_cycles')
+    savedstate.incr('total_cycles')
 
     if args.once:
         sys.exit(int(not ret))

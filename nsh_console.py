@@ -5,17 +5,16 @@ connect to nsh console
 
 import pexpect, sys
 from config import *
-import logging, time
+import logger, time
 
 def nsh_console(interactive=False):
     '''connect to nsh on test board'''
-    print("CONNECTING TO NSH CONSOLE")
-    log
+    logger.info("CONNECTING TO NSH CONSOLE")
     if interactive:
         logfile = None
     else:
-        logfile = logging.new_tlog("TestNSH", extension='log')
-        print("nsh logging to %s" % logfile)
+        logfile = logger.new_tlog("TestNSH", extension='log')
+        logger.info("nsh logging to %s" % logfile)
     cmd = "mavproxy.py --baudrate 57600 --setup --master %s" % FMU_DEBUG
     if logfile is not None:
         cmd += " --logfile %s" % logfile

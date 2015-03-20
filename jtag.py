@@ -4,6 +4,7 @@ load firmwares over JTAG with gdb under pexpect
 '''
 
 import pexpect, sys, util
+import logger
 from StringIO import StringIO
 from config import *
 import power_control
@@ -11,7 +12,7 @@ import power_control
 def load_firmware(device, firmware, mcu_id, run=False):
     '''load a given firmware'''
     cmd = "%s %s" % (GDB, firmware)
-    print("Loading firmware %s" % firmware)
+    logger.info("Loading firmware %s" % firmware)
     log = StringIO()
     try:
         gdb = pexpect.spawn(cmd, logfile=log, timeout=10)
@@ -50,7 +51,7 @@ def load_firmware(device, firmware, mcu_id, run=False):
 def erase_firmware(device, mcu_id):
     '''erase a firmware'''
     cmd = GDB
-    print("Erasing firmware for '%s'" % mcu_id)
+    logger.info("Erasing firmware for '%s'" % mcu_id)
     try:
         util.kill_processes([GDB])
         gdb = pexpect.spawn(cmd, logfile=sys.stdout, timeout=10)
@@ -78,10 +79,10 @@ def erase_firmware(device, mcu_id):
         gdb.send('y\n')
         gdb.expect("Detached from remote")
         gdb.close()
-        print("closed")
+        logger.info("closed")
     except Exception as ex:
         util.show_error('Erasing firmware', ex)
-    print("Erase done")
+    logger.info("Erase done")
 
 def attach_gdb(device, mcu_id, firmware=None):
     '''attach to gdb'''
@@ -107,8 +108,8 @@ def attach_gdb(device, mcu_id, firmware=None):
     gdb.send("set mem inaccessible-by-default off\n")
     gdb.expect("(gdb)")
     if firmware is not None:
-        print("Use 'load' to load the firmware")
-        print("Use 'quit' to quit")
+        logger.info("Use 'load' to load the firmware")
+        logger.info("Use 'quit' to quit")
     gdb.send('\n')
     gdb.interact()
 
@@ -118,7 +119,7 @@ def load_all_firmwares(retries=3):
         retries -= 1
         if not util.wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG]):
             if retries == 1:
-                print("RETRIES=1 - POWER CYCLING")
+                logger.info("RETRIES=1 - POWER CYCLING")
                 power_control.power_cycle(down_time=4)
             continue
 
@@ -129,7 +130,7 @@ def load_all_firmwares(retries=3):
             load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)
             load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU)
         except Exception as ex:
-            print("error loading firmwares %s" % ex)
+            logger.error("error loading firmwares %s" % ex)
             continue
 
         # power cycle after loading to ensure the boards can come up cleanly
@@ -138,27 +139,27 @@ def load_all_firmwares(retries=3):
         if util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
             break
         if retries > 0:
-            print("RETRIES %u - TRYING AGAIN" % retries)
+            logger.info("RETRIES %u - TRYING AGAIN" % retries)
     if retries == 0:
-        print("FAILED TO LOAD FIRMWARES")
+        logger.error("FAILED TO LOAD FIRMWARES")
         return False
 
-    print("All firmwares loaded OK")
+    logger.info("All firmwares loaded OK")
     return True
 
 def erase_firmwares(retries=3):
     '''erase both firmwares. Return True on success, False on failure'''
     if not util.wait_devices([IO_JTAG, FMU_JTAG, FMU_DEBUG]):
-        print("jtag devices not ready")
+        logger.info("jtag devices not ready")
         return False
 
     try:
         erase_firmware(IO_JTAG, CPUID_IO)
         erase_firmware(FMU_JTAG, CPUID_FMU)
     except Exception as ex:
-        print(ex)
+        logger.error(ex)
         return False
-    print("All firmwares erased OK")
+    logger.info("All firmwares erased OK")
     return True
 
 

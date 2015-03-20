@@ -1,8 +1,8 @@
 import sys, time, os
-import power_control
 from config import *
 from pymavlink import mavutil
 from math import *
+import logger
 
 class FirmwareLoadError(Exception):
     '''firmload exception class'''
@@ -19,7 +19,7 @@ def show_tail(logstr):
     if len(lines) < n:
         n = len(lines)
     for i in range(n):
-        print(lines[len(lines)-n+i].rstrip())
+        logger.debug(lines[len(lines)-n+i].rstrip())
     logstr.seek(ofs)
 
 def show_error(test, ex, logstr=None):
@@ -60,7 +60,7 @@ def wait_no_device(devices, timeout=10):
 
 def failure(msg):
     '''show a failure msg and raise an exception'''
-    print(msg)
+    logger.error(msg)
     raise(FirmwareLoadError(msg))
 
 def wait_field(refmav, msg_type, field):
@@ -148,46 +148,11 @@ def wait_mode(mav, modes, timeout=10):
     while time.time() < start_time+timeout:
         wait_heartbeat(mav, timeout=10)
         if mav.flightmode != last_mode:
-            print("Flightmode %s" % mav.flightmode)
+            logger.info("Flightmode %s" % mav.flightmode)
             last_mode = mav.flightmode
         if mav.flightmode in modes:
             return
     failure("Failed to get mode from %s" % modes)
-
-class Tee(object):
-    '''log to stdout and a file. Like unix tee command
-    See http://stackoverflow.com/questions/616645/how-do-i-duplicate-sys-stdout-to-a-log-file-in-python
-    '''
-    def __init__(self, name):
-        self.file = open(name, 'w')
-        self.stdout = sys.stdout
-        sys.stdout = self
-    def __del__(self):
-        self.close()
-    def write(self, data):
-        if self.file is not None:
-            self.file.write(data)
-        if self.stdout is not None:
-            self.stdout.write(data)
-        else:
-            sys.stdout.write(data)
-        self.flush()
-    def flush(self):
-        if self.file is not None:
-            self.file.flush()
-        if self.stdout is not None:
-            self.stdout.flush()
-        else:
-            sys.stdout.flush()
-    def close(self):
-        if self.file is not None:
-            self.file.close()
-        if self.stdout is not None:
-            sys.stdout = self.stdout
-        self.stdout = None
-        self.file = None
-        
-
 
 def mkdir_p(dir):
     '''like mkdir -p'''

@@ -8,6 +8,7 @@ import mav_reference
 import mav_test
 import nsh_console
 import util, time
+import logger
 from config import *
 from StringIO import StringIO
 from pymavlink import mavutil
@@ -22,13 +23,13 @@ def ref_gyro_offset_ok(refmav):
     '''
     ref_ofs = refmav.recv_match(type='SENSOR_OFFSETS', blocking=True, timeout=10)
     if ref_ofs is None:
-        print("No SENSOR_OFFSETS message")
+        logger.error("No SENSOR_OFFSETS message")
         return False
     gyros = Vector3(degrees(ref_ofs.gyro_cal_x),
                     degrees(ref_ofs.gyro_cal_y),
                     degrees(ref_ofs.gyro_cal_z))
 
-    print("Gyro reference %.2f" % gyros.length())
+    logger.debug("Gyro reference %.2f" % gyros.length())
     return gyros.length() < REF_GYRO_TOLERANCE
     
 
@@ -66,7 +67,7 @@ class Connection(object):
             util.show_error('Connecting to test board1', ex, self.testlog)
 
         try:
-            print("CONNECTING MAVLINK TO REFERENCE BOARD")
+            logger.info("CONNECTING MAVLINK TO REFERENCE BOARD")
             self.refmav = mavutil.mavlink_connection('127.0.0.1:14550')
             util.wait_heartbeat(self.refmav, timeout=30)
             util.wait_mode(self.refmav, IDLE_MODES)
@@ -76,12 +77,12 @@ class Connection(object):
 
         try:
             if not ref_only:
-                print("CONNECTING MAVLINK TO TEST BOARD at %s" % time.ctime())
+                logger.info("CONNECTING MAVLINK TO TEST BOARD at %s" % time.ctime())
                 self.testmav = mavutil.mavlink_connection('127.0.0.1:14551')
                 util.wait_heartbeat(self.testmav, timeout=30)
-                print("got heartbeat at %s" % time.ctime())
+                logger.info("got heartbeat at %s" % time.ctime())
                 util.wait_mode(self.testmav, IDLE_MODES)
-                print("Waiting for 'Ready to FLY'")
+                logger.info("Waiting for 'Ready to FLY'")
                 self.test.expect('Ready to FLY', timeout=20)
         except Exception as ex:
             self.close()
@@ -95,7 +96,7 @@ class Connection(object):
             self.close()
             util.show_error('testing reference gyros', ex)
 
-        print("Setting rotation level")
+        logger.info("Setting rotation level")
         try:
             rotate.set_rotation(self, 'level', wait=False)
         except Exception as ex:
@@ -111,7 +112,7 @@ class Connection(object):
 
     def close(self):
         '''close all connections'''
-        print("Closing all connections")
+        logger.info("Closing all connections")
         if self.refmav:
             self.refmav.close()
             self.refmav = None
@@ -135,14 +136,14 @@ class Connection(object):
 def erase_parameters():
     '''erase parameters on test board'''
     conn = Connection()
-    print("Setting SYSID_SW_MREV to 0")
+    logger.info("Setting SYSID_SW_MREV to 0")
     conn.test.send('param set SYSID_SW_MREV 0\n')
     time.sleep(1)
-    print("rebooting")
+    logger.info("rebooting")
     conn.test.send('reboot\n')
     util.discard_messages(conn.testmav)
     util.wait_mode(conn.testmav, IDLE_MODES, timeout=30)
-    print("Parameters erased")
+    logger.info("Parameters erased")
     return True
 
 if __name__ == '__main__':

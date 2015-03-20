@@ -4,6 +4,7 @@ test sensors against reference board
 '''
 import util
 import time
+import logger
 from config import *
 from math import *
 import connection
@@ -26,7 +27,7 @@ def check_accel_cal(conn):
             ofs = util.param_value(conn.test, pname)
             if abs(ofs-1.0) < 1.0e-10:
                 util.failure("%s is zero - accel %u not calibrated (scale)" % (pname, idx))
-        print("Accel cal %u OK" % (idx+1))
+        logger.info("Accel cal %u OK" % (idx+1))
 
 def check_gyro_cal(conn):
     '''check gyro cal'''
@@ -42,7 +43,7 @@ def check_gyro_cal(conn):
             ofs = float(conn.test.match.group(1))
             if abs(ofs) < 0.000001:
                 util.failure("%s is zero - gyro %u not calibrated (offset)" % (pname, idx))
-        print("Gyro cal %u OK" % (idx+1))
+        logger.info("Gyro cal %u OK" % (idx+1))
 
 
 def check_baro(conn):
@@ -68,7 +69,7 @@ def check_baro(conn):
         util.failure("Baro1 error temperature=%f should be %f" % (temp1, ref_temp))
     if abs(ref_temp - temp2) > TEMPERATURE_TOLERANCE:
         util.failure("Baro2 error temperature=%f should be %f" % (temp2, ref_temp))
-    print("Baros OK")
+    logger.info("Baros OK")
 
 def check_power(conn):
     '''check power'''
@@ -89,7 +90,7 @@ def check_power(conn):
     if test_flags != pflags:
         util.failure("power flags error %u should be %u" % (test_flags, pflags))
         
-    print("Voltages OK")
+    logger.info("Voltages OK")
         
 
 
@@ -101,7 +102,7 @@ def check_mag(conn):
     field = sqrt(magx**2 + magy**2 + magz**2)
     if field < 100 or field > 2000:
         util.failure("Bad magnetic field (%u, %u, %u, %.1f)" % (magx, magy, magz, field))
-    print("Magnetometer OK")
+    logger.info("Magnetometer OK")
 
 
 def serial_control_str(msg):
@@ -139,7 +140,7 @@ def check_serial_pair(testmav, port1, port2):
         if reply is None or reply.count == 0:
             continue
         str = serial_control_str(reply)
-        #print("reply: %u %s" % (reply.device, str))
+        #logger.error("reply: %u %s" % (reply.device, str))
         if reply.device == port1 and str == "TEST2":
             port1_ok = True
         if reply.device == port2 and str == "TEST1":
@@ -155,11 +156,11 @@ def check_serial(conn):
     check_serial_pair(conn.testmav,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM1,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_TELEM2)
-    print("Telemetry serial ports OK")
+    logger.info("Telemetry serial ports OK")
     check_serial_pair(conn.testmav,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS1,
                       mavutil.mavlink.SERIAL_CONTROL_DEV_GPS2)
-    print("GPS serial ports OK")
+    logger.info("GPS serial ports OK")
 
 def check_status(conn):
     '''check SYS_STATUS flags'''
@@ -185,11 +186,11 @@ def check_status(conn):
         health  = teststatus.onboard_control_sensors_health & sensor_bits[bit]
         if present == 0 or present != enabled or present != health:
             util.failure("Test board %s failure in SYS_STATUS" % bit)
-        print("%s status OK" % bit)
+        logger.info("%s status OK" % bit)
 
 def check_pwm(conn):
     '''check PWM output and RC input'''
-    print("Checking PWM out and RC in")
+    logger.info("Checking PWM out and RC in")
 
     # disable safety on test board
     conn.test.send('arm safetyoff\n')
@@ -224,7 +225,7 @@ def check_pwm(conn):
         servoval = getattr(servo, 'servo{0}_raw'.format(i+1))
         if abs(rc - map_values[i]) > 3:
             pwm_ok = False
-        print("pwm_check[%u] rc=%u test=%u servo=%u" % (i, rc, map_values[i], servoval))
+        logger.debug("pwm_check[%u] rc=%u test=%u servo=%u" % (i, rc, map_values[i], servoval))
     if not pwm_ok:
         util.failure("Incorrect PWM passthrough")
 

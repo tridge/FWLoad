@@ -35,5 +35,11 @@ def incr(key):
             state_cache[key] += 1
             save()
 
+def reset(key):
+    if key in state_cache.keys():
+        if isinstance(state_cache[key], int):
+            state_cache[key] = 0
+            save()
+
 if __name__ == '__main__':
     print(STATE_FILE)

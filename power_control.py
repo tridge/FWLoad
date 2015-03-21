@@ -10,6 +10,10 @@ def power_cycle(down_time=4):
     ser_dev.setRTS(1)
     time.sleep(down_time)
     ser_dev.setRTS(0)
+
+def on():
+    ser_dev = logger.get_ftdi()
+    ser_dev.setRTS(0)
     
 if __name__ == '__main__':
     power_cycle()

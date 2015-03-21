@@ -9,8 +9,8 @@ import os, sys
 GDB="arm-none-eabi-gdb"
 
 # serial numbers of black magic probes in the various test jigs
-FMU_BMAGIC_SERIAL=[ "B5D9B0CD", "B5DFB7C6" ]
-IO_BMAGIC_SERIAL=[ "B5DBB0CE", "B5DDB7C5" ]
+FMU_BMAGIC_SERIAL=[ "B5D9B0CD", "B5DFB7C6", "B5DDB0F0" ]
+IO_BMAGIC_SERIAL=[ "B5DBB0CE", "B5DDB7C5", "B5DAB7D3" ]
 
 # serial numbers of the barcode scanners
 BARCODE_SCANNER_SERIAL=[ "16C0_XXXXXX" ]

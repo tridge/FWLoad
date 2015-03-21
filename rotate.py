@@ -151,7 +151,7 @@ def optimise_attitude(conn, rotation, tolerance):
         attitude = wait_quiescent(conn.refmav)
         tries += 1
         
-    prin("timed out rotating to %s" % rotation)
+    logger.error("timed out rotating to %s" % rotation)
     return False
 
 def set_rotation(conn, rotation, wait=True):
@@ -265,6 +265,7 @@ def unjam_servos(conn):
             
 if __name__ == '__main__':
     from argparse import ArgumentParser
+    import power_control
     parser = ArgumentParser(description=__doc__)
 
     parser.add_argument("--tolerance", type=float, dest="tolerance", default=ROTATION_LEVEL_TOLERANCE,
@@ -280,6 +281,8 @@ if __name__ == '__main__':
     ROTATION_LEVEL_TOLERANCE = args.tolerance
     ROTATION_TOLERANCE = args.tolerance
     ROTATIONS['level'].chan1 = args.yaw_zero
+
+    power_control.power_cycle()
 
     conn = connection.Connection(ref_only=True)
 

@@ -2,3 +2,4 @@
 *.tlog
 *.raw
 *.log
+jigstate.json

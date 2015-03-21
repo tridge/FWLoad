@@ -154,18 +154,6 @@ def wait_mode(mav, modes, timeout=10):
             return
     failure("Failed to get mode from %s" % modes)
 
-def mkdir_p(dir):
-    '''like mkdir -p'''
-    if not dir:
-        return
-    if dir.endswith("/"):
-        mkdir_p(dir[:-1])
-        return
-    if os.path.isdir(dir):
-        return
-    mkdir_p(os.path.dirname(dir))
-    os.mkdir(dir)
-
 def gyro_vector(raw_imu):
     '''return a gyro vector in degrees/sec from a raw_imu message'''
     from pymavlink.rotmat import Vector3

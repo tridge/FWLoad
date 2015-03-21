@@ -2,24 +2,36 @@
 handle log files for factory load
 '''
 
-import util, time, os, glob, serial, logging
+import util, time, os, glob, serial, logging, power_control
 from config import *
 
 current_logdir = None
 ftdi_device = None
+
+def mkdir_p(dir):
+    '''like mkdir -p'''
+    if not dir:
+        return
+    if dir.endswith("/"):
+        mkdir_p(dir[:-1])
+        return
+    if os.path.isdir(dir):
+        return
+    mkdir_p(os.path.dirname(dir))
+    os.mkdir(dir)
 
 def new_log_dir():
     '''create a new log directory for a run'''
     global current_logdir
     current_logdir = None
     dirname = "logs/%s" % time.strftime("%Y-%m-%d")
-    util.mkdir_p(dirname)
+    mkdir_p(dirname)
     highest = None
     for i in range(1, 1000000):
         dir = os.path.join(dirname, 'run%u' % i)
         if not os.path.exists(dir):
             current_logdir = dir
-            util.mkdir_p(dir)
+            mkdir_p(dir)
             return dir
     util.failure("Failed to find log directory")
     
@@ -49,6 +61,7 @@ def get_ftdi():
         if len(ftdi_devices) != 1:
             util.failure("Must be exactly 1 FTDI device - %u found" % len(ftdi_devices))
         ftdi_device = serial.Serial(ftdi_devices[0], rtscts=False)
+        power_control.on()
     return ftdi_device
 
 def get_timestamp():
@@ -62,10 +75,9 @@ class SerialHandler(logging.StreamHandler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            stream = self.stream
-            ftdi_device = get_ftdi()
-            ftdi_device.write(msg)
-            ftdi_device.write('\r\n')
+            dev = get_ftdi()
+            dev.write(msg)
+            dev.write('\r\n')
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
@@ -76,7 +88,6 @@ log = logging.getLogger('testjig')
 log.setLevel(logging.DEBUG)
 
 # create file handler which logs debug messages
-print(get_log_dir())
 log_fh = logging.FileHandler(os.path.join(get_log_dir(), "run.log"))
 log_fh.setLevel(logging.DEBUG)
 

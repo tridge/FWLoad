@@ -126,9 +126,12 @@ barcode.monitor_scanner()
 
 # load the jig state file
 savedstate.init()
+savedstate.reset('current_cycles')
 
 while True:
+    logger.get_ftdi()
     jigstate = savedstate.get()
+    logger.info("jigstate: total_cycles = %i" % jigstate['total_cycles'])
     logger.info("jigstate: current_cycles = %i" % jigstate['current_cycles'])
 
     util.kill_processes(['mavproxy.py', GDB])
@@ -137,10 +140,10 @@ while True:
         # power cycle each time, simulating new board put in
         power_control.power_cycle()
     else:
-        # wait for the power to be switched off
+        # wait for the power to be switched off, disable serial logging
         logger.info("waiting for power off")
         util.wait_no_device([FMU_JTAG, IO_JTAG], timeout=600)
-
+    
     # wait for the power to come on again
     while not util.wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
         logger.info("waiting for power up....")

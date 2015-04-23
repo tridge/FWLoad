@@ -83,13 +83,22 @@ class SerialHandler(logging.StreamHandler):
         except:
             self.handleError(record)
 
+def reopen_logfile():
+    '''reopen the logfile to match new log directory'''
+    global log_fh, log, log_formatter
+    if log_fh is not None:
+        log.removeHandler(log_fh)
+    log_fh = logging.FileHandler(os.path.join(get_log_dir(), "run.log"))
+    log_fh.setLevel(logging.DEBUG)
+    log_fh.setFormatter(log_formatter)
+    log.addHandler(log_fh)
+
 # create a logger for 'testjig'
 log = logging.getLogger('testjig')
 log.setLevel(logging.DEBUG)
 
-# create file handler which logs debug messages
-log_fh = logging.FileHandler(os.path.join(get_log_dir(), "run.log"))
-log_fh.setLevel(logging.DEBUG)
+# create file handler which logs debug messages in reopen_logfile() above
+log_fh = None
 
 # create a console handler with a higher log level
 log_ch = logging.StreamHandler()
@@ -101,12 +110,10 @@ log_ser.setLevel(logging.DEBUG)
 
 # create a formatter and add it to the handlers
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-log_fh.setFormatter(log_formatter)
 log_ch.setFormatter(log_formatter)
 log_ser.setFormatter(log_formatter)
 
 # add the handlers to the logger
-log.addHandler(log_fh)
 log.addHandler(log_ch)
 log.addHandler(log_ser)
 

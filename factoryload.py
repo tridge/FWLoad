@@ -52,6 +52,7 @@ def factory_install():
 
     # start a new log directory on each run
     logger.new_log_dir()
+    logger.reopen_logfile()
 
     logdir = logger.get_log_dir()
     logger.info("Logging to %s" % logdir)

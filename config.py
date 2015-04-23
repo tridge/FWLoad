@@ -79,41 +79,15 @@ TILT_TOLERANCE3 = 2.5
 
 # yaw in body frame
 YAW_CHANNEL = 2
-# Yaw movement rate. +100 change == -22 degrees
-YAW_SCALE = -47.0 / 100
 
 # pitch in earth frame
 PITCH_CHANNEL = 1
-# pitch movement rate. +100 change == -34 degrees
-PITCH_SCALE = -38.0/100
+
+from calibration import *
 
 # acceptable modes when the test board is idle. This works for both
 # plane and copter
 IDLE_MODES = ["RTL","CIRCLE","MANUAL","STABILIZE"]
-
-
-# servo positions for different orientations of boards in the test jig
-# the columns are:
-#    yaw PWM
-#    pitch PWM
-#    expected roll
-#    expected pitch
-class Rotation(object):
-    def __init__(self, chan1, chan2, roll, pitch):
-        self.chan1 = chan1
-        self.chan2 = chan2
-        self.roll = roll
-        self.pitch = pitch
-
-ROTATIONS = {
-    'level' : Rotation(1716, 1522,    0,    0),
-    'right' : Rotation(1007, 864,   90,    0),
-    'left'  : Rotation(1857, 1300,  -90,    0),
-    'up'    : Rotation(1230, 865,  None,  90),
-    'down'  : Rotation(2058, 1303,  None, -90),
-    'back'  : Rotation(1308, 1091,  180,    0),
-    'slant' : Rotation(1094, 1584,   30,   30)
-    }
 
 
 # find the black magic probes from the list

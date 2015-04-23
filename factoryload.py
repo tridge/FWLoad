@@ -50,6 +50,9 @@ def factory_install():
     if not args.test:
         colour_text.clear_screen()
 
+    # start a new log directory on each run
+    logger.new_log_dir()
+
     logdir = logger.get_log_dir()
     logger.info("Logging to %s" % logdir)
 

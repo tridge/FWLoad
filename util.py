@@ -97,6 +97,13 @@ def set_servo(mav, servo, value):
                               servo, value,
                               0, 0, 0, 0, 0)
 
+def wrap_180(angle):
+    while angle > 180:
+        angle -= 360.0
+    while angle < -180:
+        angle += 360.0
+    return angle
+
 def discard_messages(mav):
     '''discard any buffered messages'''
     while True:

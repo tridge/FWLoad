@@ -30,7 +30,7 @@ USB_DEV_TEST="/dev/serial/by-id/usb-3D_Robotics_PX4_FMU_v2.x_0-if00"
 USB_DEV_REFERENCE="/dev/serial/by-id/usb-3D_Robotics_PH_REFERENCE_0-if00"
 
 # there must be exactly one FTDI device
-FTDI_POWER="/dev/serial/by-id/usb-FTDI_*"
+FTDI_POWER="/dev/serial/by-id/usb-FTDI_USB*"
 
 # file containing factory parameters to load
 FACTORY_PARM="FW/factory.parm"

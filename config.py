@@ -87,7 +87,7 @@ from calibration import *
 
 # acceptable modes when the test board is idle. This works for both
 # plane and copter
-IDLE_MODES = ["RTL","CIRCLE","MANUAL","STABILIZE"]
+IDLE_MODES = ["RTL","CIRCLE","MANUAL","STABILIZE","LOITER"]
 
 
 # find the black magic probes from the list

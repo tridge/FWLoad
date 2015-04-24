@@ -24,6 +24,8 @@ class PixPTE(object):
                 self.end   = "03"
                 self.run   =      "31 30 44 34 " #D106 this is the same as reset. Double check!!!
                 self.reset =      "31 30 44 34 " 
+                self.test_pass  =      "31 30 37 38"
+
 		#Addresses
                 # yaw_pos =      "31 30 43 38 " #D100
                 # yaw_speed =    "31 30 43 43 " #D102
@@ -48,7 +50,8 @@ class PixPTE(object):
                         return PixETE_run
                 if address == 'reset':
                         return "02 31 31 30 44 34 30 32 34 34 30 30 03 33 37"
-
+                if address == 'test_pass':
+                        return "02 31 31 30 37 38 30 32 30 31 30 30 03 32 37"
                 nhex = format(ndec, '04X') #convert dec to hex
                 HLhex = nhex[2]+nhex[3]+nhex[0]+nhex[1] #swap hi and low
                 shex = '%s' %HLhex #convert hex to string
@@ -113,7 +116,7 @@ if __name__ == '__main__':
         parser.add_argument("--delay", type=float, default=0.1, help='command delay')
         parser.add_argument("--yaw-steps", type=int, default=38800, help='yaw step size')
         parser.add_argument("--roll-steps", type=int, default=9600, help='roll step size')
-        
+        parser.add_argument("--test_pass" , action='store_true', help='show pass screen')
         parser.add_argument("roll", type=float, default=0, help="roll angle (degrees)")
         parser.add_argument("yaw", type=float, default=0, help="yaw angle (degrees)")
         args = parser.parse_args()
@@ -131,6 +134,11 @@ if __name__ == '__main__':
         if args.reset:
                 print("Resetting")
                 pte.command_bytes('reset')
+                sys.exit(0)
+
+        if args.test_pass:
+                print("displaying pass")
+                pte.command_bytes('test_pass')
                 sys.exit(0)
 
         pte.position(args.roll, args.yaw)

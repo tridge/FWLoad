@@ -15,7 +15,7 @@ def mkstate():
 def init():
     global state_cache
     try:
-        f = open(STATE_FILE, 'r') as f
+        f = open(STATE_FILE, 'r')
         state_cache = json.load(f)
     except Exception:
         f = open(STATE_FILE, 'w')

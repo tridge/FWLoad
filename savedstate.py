@@ -14,17 +14,22 @@ def mkstate():
 
 def init():
     global state_cache
-    if not os.path.isfile(STATE_FILE):
-        with open(STATE_FILE, 'w') as f:
-            state_cache = mkstate()
-            json.dump(state_cache, f)
-    else:
-        with open(STATE_FILE, 'r') as f:
-            state_cache = json.load(f)
+    try:
+        f = open(STATE_FILE, 'r') as f
+        state_cache = json.load(f)
+    except Exception:
+        f = open(STATE_FILE, 'w')
+        state_cache = mkstate()
+        json.dump(state_cache, f)
+        pass
 
 def save():
-    with open(STATE_FILE, 'w') as f:
+    try:
+        f = open(STATE_FILE, 'w')
         json.dump(state_cache, f)
+    except Exception:
+        print("FAILED TO SAVE %s" % STATE_FILE)
+        pass
 
 def get():
     return state_cache

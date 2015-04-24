@@ -28,7 +28,7 @@ def show_error(test, ex, logstr=None):
         show_tail(logstr)
     raise(FirmwareLoadError("FAILED: %s (%s)" % (test, ex)))
 
-def wait_devices(devices, timeout=10):
+def wait_devices(devices, timeout=15):
     '''wait for devices to appear'''
     start_time = time.time()
     missing = []

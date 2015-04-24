@@ -104,7 +104,7 @@ def factory_install():
         return False
 
     device_barcode = barcode.get_barcode()
-    if not device_barcode:
+    if not args.test and not device_barcode:
         colour_text.print_fail('''
 ==========================================
 | FAILED: Barcode not detected

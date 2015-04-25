@@ -3,48 +3,30 @@
 monitors a serial port for a barcode
 '''
 
-import sys, util, serial, threading, time
-from StringIO import StringIO
+import sys, util, serial
 from config import *
 
-barcode = None
-baudrate = 9600
+def barcode_read():
+    '''block waiting for a barcode to be entered'''
+    try:
+        tty = serial.Serial(port=BARCODE_SCANNER, baudrate=9600, timeout=1)
+    except Exception as ex:
+        print("Failed to open barcode scanner: %s" % ex)
+        return None
 
-tty = serial.Serial(port=BARCODE_SCANNER, baudrate=baudrate, timeout=None)
-
-def handle_data(data):
-    global barcode
-    barcode = data
-
-def read_from_port(ser):
+    barcode = ''
     while True:
         try:
             raw_data = tty.read(1)
-            if raw_data:
-                raw_data += ser.read(ser.inWaiting())
-                handle_data(raw_data)
         except Exception as ex:
-            #continue
-            raise ex
-
-def monitor_scanner():
-    thread = threading.Thread(target=read_from_port, args=(tty,))
-    thread.daemon = True
-    thread.start()
-
-def get_barcode():
-    global barcode
-    temp = None
-    if barcode:
-        temp = barcode
-        barcode = None
-    return temp
+            # this should happen on 1 second timeout
+            if barcode != '':
+                break
+        barcode += raw_data
+    if barcode == '':
+        return None
+    return barcode
 
 if __name__ == '__main__':
-    monitor_scanner()
-    while threading.active_count() > 0:
-        code = get_barcode()
-        if code:
-            print("Barcode detected: %s" % code)
-            barcode = None
-        time.sleep(0.1)
+    code = barcode_read()
+    print("Barcode: %s" % code)

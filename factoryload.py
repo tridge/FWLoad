@@ -43,7 +43,7 @@ if args.monitor:
 
 colour_text.print_blue("Starting up")
 
-def factory_install():
+def factory_install(device_barcode):
     '''main factory installer'''
     start_time = time.time()
 
@@ -103,18 +103,6 @@ def factory_install():
         logger.critical("Accelerometer calibration failed")
         return False
 
-    device_barcode = barcode.get_barcode()
-    if not args.test and not device_barcode:
-        colour_text.print_fail('''
-==========================================
-| FAILED: Barcode not detected
-==========================================
-''')
-        logger.critical("Barcode not detected")
-        return False
-    # log the barcode
-    logger.info("Barcode detected: %s" % device_barcode)
-
     # all OK
     colour_text.print_green('''
 ================================================
@@ -124,9 +112,6 @@ def factory_install():
 ''' %  (device_barcode, (time.time() - start_time)))
     logger.info("Factory install complete (%u seconds)" % (time.time() - start_time))
     return True
-
-# start the barcode monitoring thread
-barcode.monitor_scanner()
 
 # load the jig state file
 savedstate.init()
@@ -147,12 +132,33 @@ while True:
         # wait for the power to be switched off, disable serial logging
         logger.info("waiting for power off")
         util.wait_no_device([FMU_JTAG, IO_JTAG], timeout=600)
+
+    device_barcode = None
+    if not args.test:
+        colour_text.print_blue('''
+==========================================
+| PLEASE SWIPE DEVICE BARCODE
+==========================================
+''')
+        device_barcode = barcode.barcode_read()
+        if device_barcode is None:
+            colour_text.print_fail('''
+            ==========================================
+            | FAILED: Barcode not detected
+            ==========================================
+            ''')
+            logger.critical("Barcode not detected")
+            time.sleep(2)
+            continue
+        
+        # log the barcode
+        logger.info("Barcode detected: %s" % device_barcode)
     
     # wait for the power to come on again
     while not util.wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):
         logger.info("waiting for power up....")
 
-    ret = factory_install()
+    ret = factory_install(device_barcode)
 
     # increment the cycles counters
     savedstate.incr('current_cycles')

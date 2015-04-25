@@ -58,10 +58,10 @@ def factory_install(device_barcode):
     logger.info("Logging to %s" % logdir)
 
     colour_text.print_blue('''
-=======================
-| Starting installation
-=======================
-''')
+==================================================
+| Starting installation. Barcode is %s
+==================================================
+''' % device_barcode)
 
     logger.info(time.ctime())
     

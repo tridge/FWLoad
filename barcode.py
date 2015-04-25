@@ -22,7 +22,12 @@ def barcode_read():
             # this should happen on 1 second timeout
             if barcode != '':
                 break
+        if not raw_data:
+            if barcode != '':
+                break
+            continue
         barcode += raw_data
+    tty.close()
     if barcode == '':
         return None
     return barcode

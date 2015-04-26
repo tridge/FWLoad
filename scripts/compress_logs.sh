@@ -5,6 +5,7 @@ set -e
 shopt -s nullglob
 
 cd logs || exit 1
+touch cron.stamp
 for d in 20*; do
     pushd $d || continue
     echo "Checking $d"

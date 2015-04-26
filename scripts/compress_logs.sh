@@ -12,7 +12,7 @@ for d in 20*; do
         if test $(find "$run" -name "$run" -type d -mmin +15)
         then
             echo "Compressing $d/$run"
-            tar -czf $run.tar.gz $run
+            tar -cJf $run.tar.xz $run
             sync
             rm -rf $run
         fi

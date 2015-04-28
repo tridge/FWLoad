@@ -8,6 +8,7 @@ import logger
 from StringIO import StringIO
 from config import *
 import power_control
+import nsh_console
 
 def load_firmware(device, firmware, mcu_id, run=False):
     '''load a given firmware'''
@@ -136,8 +137,33 @@ def load_all_firmwares(retries=3):
         # power cycle after loading to ensure the boards can come up cleanly
         power_control.power_cycle(down_time=4)
 
+        if not util.wait_devices([FMU_DEBUG]):
+            logger.info("Failed to find nsh console device")
+            continue
+
+        logger.debug("Checking nsh console")
+        nsh = nsh_console.nsh_console()
+        i = nsh.expect(['No MPU6000 external',
+                        'l3gd20: driver start failed',
+                        'Error in startup',
+                        'ArduPilot started OK'])
+        nsh.close()
+        if i == 0:
+            logger.info("******* No external mpu6000 found - is IMU board connected? *****")
+            continue
+        if i == 1:
+            logger.info("******* No external l3gd20 found - is IMU board connected? *****")
+            continue
+        if i == 2:
+            logger.info("******* Failed to startup ArduPilot - is IMU board connected? *****")
+            continue
+        if i == 3:
+            logger.info("ArduPilot started OK")        
+
         if util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
             break
+
+        logger.info("Failed to find USB devices")  
         if retries > 0:
             logger.info("RETRIES %u - TRYING AGAIN" % retries)
     if retries == 0:

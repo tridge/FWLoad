@@ -88,6 +88,14 @@ class Connection(object):
             self.close()
             util.show_error('Connecting to test board2 at %s' % time.ctime(), ex, self.testlog)
 
+        if self.nsh is not None:
+            # log any extra nsh data
+            logger.debug("Draining nsh")
+            try:
+                self.nsh.read_nonblocking(4096, 1)
+            except Exception as ex:
+                pass
+
         try:
             if not ref_only and not ref_gyro_offset_ok(self.refmav):
                 self.close()

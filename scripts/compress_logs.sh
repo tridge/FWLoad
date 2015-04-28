@@ -17,7 +17,7 @@ for d in 20*; do
             sync
             mv tmp.tar.xz $run.tar.xz
             sync
-            rm -rf $run
+            rm -rf $run/*
         fi
     done
     # remove empty directories that have been transferred

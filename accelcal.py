@@ -28,6 +28,9 @@ def adjust_ahrs_trim(conn, level_attitude):
     # get the board level
     rotate.set_rotation(conn, 'level')
 
+    # be really sure it has stopped moving. This next measurement is critical
+    time.sleep(2)
+
     # we need to work out what the error in attitude of the 3 IMUs on the test jig is
     # to do that we start with it level, and measure the roll/pitch as compared to the reference
     # then we rotate it to pitch 90 and measure the yaw error
@@ -118,8 +121,24 @@ def adjust_ahrs_trim(conn, level_attitude):
         abs(yaw_error3) > TILT_TOLERANCE3):
         util.failure("Test board yaw error")
 
+    # setting a positive trim value reduces the attitude that is
+    # read. So setting a trim of 0.1 when level results in a attitude
+    # reading of -5.8 degrees
+
+    # this assumes the reference board always reads correct attitude
+    # and that there is no attitude discrepance between test and
+    # reference boards    
     trim_x = radians((roll_error1+roll_error2)/2)
     trim_y = radians((pitch_error1+pitch_error2)/2)
+    logger.debug("OLD Set trims AHRS_TRIM_X=%.4f AHRS_TRIM_Y=%.4f" % (trim_x, trim_y))
+
+    # this new approach assumes the mpu6000 on the FMU (IMU3) is level
+    # with respect to the board, and that any attitude error is due to
+    # the isolation board mount. We use the average of the error from
+    # IMU1 and IMU2
+    trim_x = radians((test_roll1+test_roll2)*0.5 - test_roll3)
+    trim_y = radians((test_pitch1+test_pitch2)*0.5 - test_pitch3)
+
     util.param_set(conn.test, 'AHRS_TRIM_X', trim_x)
     time.sleep(0.2)
     util.param_set(conn.test, 'AHRS_TRIM_Y', trim_y)

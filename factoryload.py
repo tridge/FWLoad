@@ -57,6 +57,7 @@ def factory_install(device_barcode):
 
     logdir = logger.get_log_dir()
     logger.info("Logging to %s" % logdir)
+    logger.info("Device barcode %s" % device_barcode)
 
     colour_text.print_blue('''
 ==================================================

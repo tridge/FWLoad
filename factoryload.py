@@ -35,6 +35,7 @@ parser.add_argument("--once", default=False, action='store_true', help="run one 
 parser.add_argument("--nofw", default=False, action='store_true', help="don't reload firmware")
 parser.add_argument("--erase", default=False, action='store_true', help="erase firmware and parameters")
 parser.add_argument("--monitor", default=None, help="monitor address")
+parser.add_argument("--barcode", default=None, help="override barcode")
 args = parser.parse_args()
 
 if args.monitor:
@@ -133,8 +134,8 @@ while True:
         logger.info("waiting for power off")
         util.wait_no_device([FMU_JTAG, IO_JTAG], timeout=600)
 
-    device_barcode = None
-    if not args.test:
+    device_barcode = args.barcode
+    if not args.test and device_barcode is None:
         colour_text.print_blue('''
 ==========================================
 | PLEASE SWIPE DEVICE BARCODE

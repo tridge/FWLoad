@@ -340,7 +340,6 @@ def accel_calibrate_reference():
     if i != 0:
         util.failure("Accel calibration failed at %s" % time.ctime())
     logger.info("Calibration successful")
-    rotate.write_calibration()
     rotate.set_rotation(conn, 'level', wait=False)
     util.param_set(conn.ref, 'AHRS_TRIM_X', 0)
     util.param_set(conn.ref, 'AHRS_TRIM_Y', 0)

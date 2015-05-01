@@ -9,6 +9,7 @@ from StringIO import StringIO
 from config import *
 import power_control
 import nsh_console
+import colour_text
 
 def load_firmware(device, firmware, mcu_id, run=False):
     '''load a given firmware'''
@@ -143,22 +144,33 @@ def load_all_firmwares(retries=3):
 
         logger.debug("Checking nsh console")
         nsh = nsh_console.nsh_console()
-        i = nsh.expect(['No MPU6000 external',
-                        'l3gd20: driver start failed',
-                        'Error in startup',
-                        'ArduPilot started OK'])
+        failure = None
+        try:
+            i = nsh.expect(['No MPU6000 external',
+                            'l3gd20: driver start failed',
+                            'Error in startup',
+                            'ArduPilot started OK',
+                            'format failed',
+                            'Opening USB nsh'])
+        except Exception as ex:
+            failure = "******* Failed to get data from NSH console *******"
+            pass
         nsh.close()
-        if i == 0:
-            logger.info("******* No external mpu6000 found - is IMU board connected? *****")
+        if failure is None:
+            if i == 0:
+                failure = "******* No external mpu6000 found - is IMU board connected? *****"
+            if i == 1:
+                failure = "******* No external l3gd20 found - is IMU board connected? *****"
+            if i == 2:
+                failure = "******* Failed to startup ArduPilot - is IMU board connected? *****"
+            if i == 4:
+                failure = "******* microSD card failure ********"
+            if i == 5:
+                failure = "****** ArduPilot failed to start - general failure ******"
+        if failure is not None:
+            logger.info(failure)
+            colour_text.print_fail(failure)
             continue
-        if i == 1:
-            logger.info("******* No external l3gd20 found - is IMU board connected? *****")
-            continue
-        if i == 2:
-            logger.info("******* Failed to startup ArduPilot - is IMU board connected? *****")
-            continue
-        if i == 3:
-            logger.info("ArduPilot started OK")        
 
         if util.wait_devices([USB_DEV_TEST, USB_DEV_REFERENCE]):
             break

@@ -73,7 +73,7 @@ def wait_quiescent(mav, type='RAW_IMU'):
     t1 = time.time()
     util.discard_messages(mav)
     raw_imu = None
-    while time.time() < t1+20:
+    while time.time() < t1+15:
         raw_imu = mav.recv_match(type=type, blocking=True, timeout=4)  # JQM
 #        logger.debug("mav.recv_match: type=%s   x=%s  y=%s  z=%s" % (type, raw_imu.xgyro, raw_imu.ygyro, raw_imu.zgyro))
         if raw_imu is None:

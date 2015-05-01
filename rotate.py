@@ -83,7 +83,7 @@ def wait_quiescent(mav, type='RAW_IMU'):
         if (abs(degrees(raw_imu.xgyro*0.001)) < GYRO_TOLERANCE and
             abs(degrees(raw_imu.ygyro*0.001)) < GYRO_TOLERANCE and
             abs(degrees(raw_imu.zgyro*0.001)) < GYRO_TOLERANCE):
-            logger.debug("Tolerance -- Not quiescent: x=%s  y=%s  z=%s" % (abs(degrees(raw_imu.xgyro*0.001)), abs(degrees(raw_imu.ygyro*0.001)), abs(degrees(raw_imu.zgyro*0.001))) )
+            logger.debug("Tolerance -- quiescent: x=%s  y=%s  z=%s" % (abs(degrees(raw_imu.xgyro*0.001)), abs(degrees(raw_imu.ygyro*0.001)), abs(degrees(raw_imu.zgyro*0.001))) )
             break
     if raw_imu is None:
         util.failure("Failed to reach quiescent state")

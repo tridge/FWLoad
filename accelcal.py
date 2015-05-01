@@ -246,6 +246,7 @@ def accel_calibrate_run(conn):
         util.failure("Accel calibration failed at %s" % time.ctime())
     #logger.info(conn.test.before)
     logger.info("Calibration successful")
+    rotate.write_calibration()
     rotate.set_rotation(conn, 'level', wait=False)
     adjust_ahrs_trim(conn, level_attitude)
 

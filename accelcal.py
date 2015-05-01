@@ -199,7 +199,7 @@ def wait_gyros(conn):
         except Exception as ex:
             logger.debug("Recalibrating gyros : %s" % ex)
             conn.test.send('gyrocal\n')
-            conn.expect('Calibrated')
+            conn.test.expect('Calibrated')
             continue
         break
     if tries == 0:
@@ -210,6 +210,11 @@ def accel_calibrate_run(conn):
     '''run accelcal'''
     logger.info("STARTING ACCEL CALIBRATION")
 
+    wait_gyros(conn)
+
+    logger.debug("running ref gyro cal")
+    conn.ref.send('gyrocal\n')
+    conn.ref.expect('Calibrated')
     wait_gyros(conn)
 
     logger.info("Turning safety off")

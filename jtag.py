@@ -155,6 +155,13 @@ def load_all_firmwares(retries=3):
         except Exception as ex:
             failure = "******* Failed to get data from NSH console *******"
             pass
+        try:
+            nsh.send("\nver all\n")
+            nsh.expect("UID:")
+            nsh.expect("nsh>")
+        except Exception as ex:
+            failure = "******* failed to get version from nsh *******"
+            pass
         nsh.close()
         if failure is None:
             if i == 0:

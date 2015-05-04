@@ -16,6 +16,7 @@ def barcode_read():
 
     barcode = ''
     while True:
+        raw_data = ''
         try:
             raw_data = tty.read(1)
         except Exception as ex:

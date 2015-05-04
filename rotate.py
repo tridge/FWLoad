@@ -68,24 +68,27 @@ def attitude_error(attitude, target_roll, target_pitch):
     return (err_roll, err_pitch)
 
 
-def wait_quiescent(mav, type='RAW_IMU'):
+def wait_quiescent(mav, type='RAW_IMU', quick=False):
     '''wait for movement to stop'''
     t1 = time.time()
     util.discard_messages(mav)
     raw_imu = None
-    while time.time() < t1+15:
+    if quick:
+        timeout = 7
+    else:
+        timeout = 15
+    while time.time() < t1+timeout:
         raw_imu = mav.recv_match(type=type, blocking=True, timeout=4)  # JQM
 #        logger.debug("mav.recv_match: type=%s   x=%s  y=%s  z=%s" % (type, raw_imu.xgyro, raw_imu.ygyro, raw_imu.zgyro))
         if raw_imu is None:
             util.failure("communication with board lost for %s" % type)
         if time.time() > t1+10:
-            logger.debug("Time > 10 -- Not quiescent: x=%s  y=%s  z=%s" % (abs(degrees(raw_imu.xgyro*0.001)), abs(degrees(raw_imu.ygyro*0.001)), abs(degrees(raw_imu.zgyro*0.001))) )
+            logger.debug("Time > 10 -- Not quiescent: x=%.2f y=%.2f z=%.2f" % (abs(degrees(raw_imu.xgyro*0.001)), abs(degrees(raw_imu.ygyro*0.001)), abs(degrees(raw_imu.zgyro*0.001))) )
         if (abs(degrees(raw_imu.xgyro*0.001)) < GYRO_TOLERANCE and
             abs(degrees(raw_imu.ygyro*0.001)) < GYRO_TOLERANCE and
             abs(degrees(raw_imu.zgyro*0.001)) < GYRO_TOLERANCE):
-            logger.debug("Tolerance -- quiescent: x=%s  y=%s  z=%s" % (abs(degrees(raw_imu.xgyro*0.001)), abs(degrees(raw_imu.ygyro*0.001)), abs(degrees(raw_imu.zgyro*0.001))) )
             break
-    if raw_imu is None:
+    if raw_imu is None and not quick:
         util.failure("Failed to reach quiescent state")
     attitude = mav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
     if attitude is None:
@@ -99,7 +102,7 @@ def wait_quiescent_list(mav, types):
         attitude = wait_quiescent(mav, type)
     return attitude
 
-def optimise_attitude(conn, rotation, tolerance, timeout=25):
+def optimise_attitude(conn, rotation, tolerance, timeout=25, quick=False):
     '''optimise attitude using servo changes'''
     expected_roll = ROTATIONS[rotation].roll
     expected_pitch = ROTATIONS[rotation].pitch
@@ -131,16 +134,13 @@ def optimise_attitude(conn, rotation, tolerance, timeout=25):
         (chan1_change, chan2_change) = gimbal_controller(dcm_estimated,
                                                          dcm_demanded, chan1)
         (err_roll, err_pitch) = attitude_error(attitude, expected_roll, expected_pitch)
-#        logger.debug("%s offsets: %.2f %.2f chan1=%u chan2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
-        logger.info("optimise_attitude: %s err_roll=%.2f   err_pitch=%.2f   chan1=%u chan2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
-#        logger.info("Try %s -- rotation: %s   err_roll: %.2f  err_pitch: %.2f    tolerance %.1f at %s" % (tries, rotation, err_roll, err_pitch, tolerance, time.ctime()))
+        logger.info("optimise_attitude: %s err_roll=%.2f err_pitch=%.2f c1=%u c2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
         if (tries > 0 and (abs(err_roll)+abs(err_pitch) < tolerance or
                            (abs(chan1_change)<1 and abs(chan2_change)<1))):
-            logger.info("%s converged %.2f %.2f tolerance %.1f at %s" % (rotation, err_roll, err_pitch, tolerance, time.ctime()))
+            logger.info("%s converged %.2f %.2f tolerance %.1f" % (rotation, err_roll, err_pitch, tolerance))
             # update optimised rotations to save on convergence time for the next board
             ROTATIONS[rotation].chan1 = chan1
             ROTATIONS[rotation].chan2 = chan2
-            logger.info("optimise_attitude: ROTATIONS[%s]  chan1:%s   chan2:%s" % (rotation, ROTATIONS[rotation].chan1, ROTATIONS[rotation].chan2) )
             return True
         chan1 += chan1_change
         chan2 += chan2_change
@@ -149,7 +149,7 @@ def optimise_attitude(conn, rotation, tolerance, timeout=25):
             return False
         util.set_servo(conn.refmav, YAW_CHANNEL, chan1)
         util.set_servo(conn.refmav, PITCH_CHANNEL, chan2)
-        attitude = wait_quiescent(conn.refmav)
+        attitude = wait_quiescent(conn.refmav, quick=quick)
         tries += 1
         
     logger.error("timed out rotating to %s" % rotation)
@@ -157,14 +157,14 @@ def optimise_attitude(conn, rotation, tolerance, timeout=25):
 
 
 #-------------------------------------------------------------------------------------------
-def set_rotation(conn, rotation, wait=True, timeout=25):
+def set_rotation(conn, rotation, wait=True, timeout=25, quick=False):
     '''set servo rotation'''
     if not rotation in ROTATIONS:
         util.failure("No rotation %s" % rotation)
     expected_roll = ROTATIONS[rotation].roll
     expected_pitch = ROTATIONS[rotation].pitch
 
-    logger.info("set_rotation: call set_servo -- YAW rotation[%s].chan1=%s      PITCH rotation[%s].chan2=%s" % (rotation, ROTATIONS[rotation].chan1, rotation, ROTATIONS[rotation].chan2) )
+    logger.info("set_rotation: %s chan1=%u chan2=%u" % (rotation, ROTATIONS[rotation].chan1, ROTATIONS[rotation].chan2) )
     # start with initial settings from the table
     util.set_servo(conn.refmav, YAW_CHANNEL, ROTATIONS[rotation].chan1)
     util.set_servo(conn.refmav, PITCH_CHANNEL, ROTATIONS[rotation].chan2)
@@ -180,7 +180,7 @@ def set_rotation(conn, rotation, wait=True, timeout=25):
         tolerance = ROTATION_TOLERANCE
 
     # now optimise it
-    if not optimise_attitude(conn, rotation, tolerance, timeout=timeout):
+    if not optimise_attitude(conn, rotation, tolerance, timeout=timeout, quick=quick):
         util.failure("Failed to reach target attitude")
     return conn.refmav.recv_match(type='ATTITUDE', blocking=True, timeout=3)
 
@@ -194,7 +194,7 @@ def gyro_integrate(conn):
     util.param_set(conn.ref, 'SR0_RAW_SENS', 20)
     util.param_set(conn.test, 'SR0_RAW_SENS', 20)
 
-    logger.info("Starting gyro integration at %s" % time.ctime())
+    logger.info("Starting gyro integration")
     wait_quiescent(conn.refmav)
     conn.discard_messages()
 
@@ -357,7 +357,7 @@ ROTATIONS = {
             ROTATIONS[r].pitch))
     f.write('}\n')
     f.close()
-    os.rename("FWLoad/calibration-new.py", "FWLoad/calibration.py")
+    os.rename("FWLoad/calibration-new.py", "FWLoad/calibration_local.py")
             
 
 def calibrate_servos(conn):

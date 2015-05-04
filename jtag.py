@@ -145,6 +145,7 @@ def load_all_firmwares(retries=3):
         logger.debug("Checking nsh console")
         nsh = nsh_console.nsh_console()
         failure = None
+        i = -1
         try:
             i = nsh.expect(['No MPU6000 external',
                             'l3gd20: driver start failed',

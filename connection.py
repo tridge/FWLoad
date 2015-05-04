@@ -77,16 +77,41 @@ class Connection(object):
 
         try:
             if not ref_only:
-                logger.info("CONNECTING MAVLINK TO TEST BOARD at %s" % time.ctime())
+                logger.info("CONNECTING MAVLINK TO TEST BOARD")
                 self.testmav = mavutil.mavlink_connection('127.0.0.1:14551')
                 util.wait_heartbeat(self.testmav, timeout=30)
-                logger.info("got heartbeat at %s" % time.ctime())
+                logger.info("got heartbeat")
                 util.wait_mode(self.testmav, IDLE_MODES)
                 logger.info("Waiting for 'Ready to FLY'")
-                self.test.expect('Ready to FLY', timeout=20)
+                self.fw_version = None
+                self.px4_version = None
+                self.nuttx_version = None
+                self.stm32_serial = None
+                ready = False
+                self.test.send("param fetch\n")
+                # log version information for later reference
+                while (self.fw_version is None or
+                       self.px4_version is None or
+                       self.nuttx_version is None or
+                       self.stm32_serial is None or
+                       not ready):
+                    i = self.test.expect(['APM: ([^\r\n]*Copter[^\r\n]*)\r\n',
+                                          'APM: PX4: ([0-9a-f]+) NuttX: ([0-9a-f]+)\r\n',
+                                          'APM: PX4v2 ([0-9A-F]+ [0-9A-F]+ [0-9A-F]+)\r\n',
+                                          '(Ready to FLY)'],
+                                         timeout=20)
+                    if i == 3:
+                        ready = True
+                    elif i == 0:
+                        self.fw_version = self.test.match.group(1)
+                    elif i == 1:
+                        self.px4_version = self.test.match.group(1)
+                        self.nuttx_version = self.test.match.group(2)
+                    elif i == 2:
+                        self.stm32_serial = self.test.match.group(1)
         except Exception as ex:
             self.close()
-            util.show_error('Connecting to test board2 at %s' % time.ctime(), ex, self.testlog)
+            util.show_error('Connecting to test board2', ex, self.testlog)
 
         if self.nsh is not None:
             # log any extra nsh data
@@ -117,6 +142,16 @@ class Connection(object):
             util.discard_messages(self.refmav)
         if self.testmav:
             util.discard_messages(self.testmav)
+        if self.test:
+            try:
+                self.test.read_nonblocking(4096, 0)
+            except Exception:
+                pass
+        if self.ref:
+            try:
+                self.ref.read_nonblocking(4096, 0)
+            except Exception:
+                pass
 
     def close(self):
         '''close all connections'''

@@ -83,7 +83,12 @@ YAW_CHANNEL = 2
 # pitch in earth frame
 PITCH_CHANNEL = 1
 
-from calibration import *
+try:
+    # try to use jig specific calibration if possible
+    from calibration_local import *
+except Exception:
+    # fall back to general cal otherwise
+    from calibration import *
 
 # acceptable modes when the test board is idle. This works for both
 # plane and copter

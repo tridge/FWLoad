@@ -104,14 +104,11 @@ def adjust_ahrs_trim(conn, level_attitude):
     msgs = ['RAW_IMU', 'SCALED_IMU2', 'SCALED_IMU3']
 
     for i in range(num_samples):
-        test_imu = []
         for j in range(3):
-            test_imu.append(conn.testmav.recv_match(type=msgs[j], blocking=True, timeout=3))
-            if test_imu[j] is None:
+            test_imu = conn.testmav.recv_match(type=msgs[j], blocking=True, timeout=3)
+            if test_imu is None:
                 util.failure("Lost comms to test board in ahrs trim")
-
-        for j in range(3):
-            (roll, pitch) = util.attitude_estimate(test_imu[j])
+            (roll, pitch) = util.attitude_estimate(test_imu)
             test_roll[j] += roll
             test_pitch[j] += pitch
 

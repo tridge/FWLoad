@@ -93,24 +93,36 @@ def adjust_ahrs_trim(conn, level_attitude):
     # set orientation upside down for trim measurement
     util.param_set(conn.test, 'AHRS_ORIENTATION', 12)
 
-    # sleep an extra two seconds - we need to be very sure the board is still for trim
-    time.sleep(2)
+    # sleep an extra four seconds - we need to be very sure the board is still for trim
+    time.sleep(4)
     conn.discard_messages()
 
-    test_imu1 = conn.testmav.recv_match(type='RAW_IMU', blocking=True, timeout=3)
-    test_imu2 = conn.testmav.recv_match(type='SCALED_IMU2', blocking=True, timeout=3)
-    test_imu3 = conn.testmav.recv_match(type='SCALED_IMU3', blocking=True, timeout=3)
-    if test_imu1 is None or test_imu2 is None or test_imu3 is None:
-        util.failure("Lost comms to test board in ahrs trim")
+    # average over 30 samples for trim
+    num_samples = 30
+    test_roll = [0]*3
+    test_pitch = [0]*3
+    msgs = ['RAW_IMU', 'SCALED_IMU2', 'SCALED_IMU3']
 
-    (test_roll1, test_pitch1) = util.attitude_estimate(test_imu1)
-    (test_roll2, test_pitch2) = util.attitude_estimate(test_imu2)
-    (test_roll3, test_pitch3) = util.attitude_estimate(test_imu3)
+    for i in range(num_samples):
+        test_imu = []
+        for j in range(3):
+            test_imu.append(conn.testmav.recv_match(type=msgs[j], blocking=True, timeout=3))
+            if test_imu[j] is None:
+                util.failure("Lost comms to test board in ahrs trim")
 
-    logger.debug("Trim tilt Test1=(%.1f %.1f) Test2=(%.1f %.1f) Test3=(%.1f %.1f)" % (
-        test_roll1, test_pitch1,
-        test_roll2, test_pitch2,
-        test_roll3, test_pitch3))
+        for j in range(3):
+            (roll, pitch) = util.attitude_estimate(test_imu[j])
+            test_roll[j] += roll
+            test_pitch[j] += pitch
+
+    for j in range(3):
+        test_roll[j] /= num_samples
+        test_pitch[j] /= num_samples
+
+    logger.debug("Average Trim tilt Test1=(%.1f %.1f) Test2=(%.1f %.1f) Test3=(%.1f %.1f)" % (
+        test_roll[0], test_pitch[0],
+        test_roll[1], test_pitch[1],
+        test_roll[2], test_pitch[2]))
 
     # setting a positive trim value reduces the attitude that is
     # read. So setting a trim of 0.1 when level results in a attitude
@@ -120,8 +132,8 @@ def adjust_ahrs_trim(conn, level_attitude):
     # with respect to the board, and that any attitude error is due to
     # the isolation board mount. We use the average of the error from
     # IMU1 and IMU2
-    trim_x = radians((test_roll1+test_roll2)*0.5 - test_roll3)
-    trim_y = radians((test_pitch1+test_pitch2)*0.5 - test_pitch3)
+    trim_x = radians((test_roll[0]+test_roll[1])*0.5 - test_roll[2])
+    trim_y = radians((test_pitch[0]+test_pitch[1])*0.5 - test_pitch[2])
 
     util.param_set(conn.test, 'AHRS_TRIM_X', trim_x)
     time.sleep(0.2)

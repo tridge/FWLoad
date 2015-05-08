@@ -160,11 +160,11 @@ def load_all_firmwares(retries=3):
             nsh.send("\nver all\n")
             nsh.expect("UID:")
             nsh.expect("nsh>")
+            nsh.close()
         except Exception as ex:
             if i == 3:
                 failure = "******* failed to get version from nsh *******"
             pass
-        nsh.close()
         if failure is None:
             if i == 0:
                 failure = "******* No external mpu6000 found - is IMU board connected? *****"

@@ -153,8 +153,10 @@ while True:
             time.sleep(2)
             continue
         
-        # log the barcode
-        logger.info("Barcode detected: %s" % device_barcode)
+        # we don't use logger for the barcode here as we are still on the previous
+        # boards log
+        print("Got barcode: %s" % device_barcode)
+        logger.info("Barcode detected")
     
     # wait for the power to come on again
     while not util.wait_devices([FMU_JTAG, IO_JTAG, FMU_DEBUG]):

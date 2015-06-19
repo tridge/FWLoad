@@ -345,7 +345,7 @@ class Rotation(object):
 
 ROTATIONS = {
 ''')
-    for r in ['level', 'right', 'left', 'up', 'down', 'back', 'slant']:
+    for r in ['level', 'right', 'left', 'up', 'down', 'back']:
         roll = ROTATIONS[r].roll
         if roll is None:
             roll = 'None'
@@ -417,7 +417,7 @@ def calibrate_servos(conn):
     # step 4: optimise each rotation
     ROTATION_LEVEL_TOLERANCE = 0
     ROTATION_TOLERANCE = 0
-    for rotation in ['level', 'right', 'left', 'up', 'down', 'back', 'slant']:
+    for rotation in ['level', 'right', 'left', 'up', 'down', 'back']:
         print("optimising %s" % rotation)
         set_rotation(conn, rotation, wait=True, timeout=60)
 

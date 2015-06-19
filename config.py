@@ -107,13 +107,6 @@ for id in IO_BMAGIC_SERIAL:
     p = "/dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_%s-if00" % id
     if os.path.exists(p):
         IO_JTAG = p
-if FMU_JTAG is None:
-    print("No JTAG device for FMU found")
-    sys.exit(1)
-
-if IO_JTAG is None:
-    print("No JTAG device for IO found")
-    sys.exit(1)
 
 # find the bardode scanner
 BARCODE_SCANNER = None
@@ -121,8 +114,4 @@ for id in BARCODE_SCANNER_SERIAL:
     p = "/dev/serial/by-id/usb-LineFotuneImaging___Mobility_%s-if00" % id
     if os.path.exists(p):
         BARCODE_SCANNER = p
-
-if BARCODE_SCANNER is None:
-    print("No barcode scanner found")
-    sys.exit(1)
 

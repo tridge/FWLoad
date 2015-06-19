@@ -152,8 +152,16 @@ def optimise_attitude(conn, rotation, tolerance, timeout=25, quick=False):
             return True
         chan1 += chan1_change
         chan2 += chan2_change
+        if chan1 < 700:
+            chan1 += 900
+        if chan2 < 700:
+            chan2 += 900
+        if chan1 > 2300:
+            chan1 -= 900
+        if chan2 > 2300:
+            chan2 -= 900
         if chan1 < 700 or chan1 > 2300 or chan2 < 700 or chan2 > 2300:
-            logger.debug("servos out of range - failed")
+            logger.debug("servos out of range")
             return False
         util.set_servo(conn.refmav, YAW_CHANNEL, chan1)
         util.set_servo(conn.refmav, PITCH_CHANNEL, chan2)
@@ -370,6 +378,9 @@ ROTATIONS = {
 
 def calibrate_servos(conn):
     '''try to calibrate servos'''
+    conn.ref.send('gyrocal\n')
+    conn.ref.expect('Calibrated')
+
     logger.info("Starting calibration")
     conn.discard_messages()
 

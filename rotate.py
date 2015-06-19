@@ -378,11 +378,15 @@ def calibrate_servos(conn):
     #yaw_zero = 1585
     ROTATIONS['level'].chan1 = yaw_zero
 
+    write_calibration()
+
     # step 2: find pitch zero by finding pitch channel that minimises pitch
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
     pitch_zero = find_pitch_zero(conn)
     #pitch_zero = 1855
     ROTATIONS['level'].chan2 = pitch_zero
+
+    write_calibration()
 
     # step 3: find yaw scale
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
@@ -404,6 +408,8 @@ def calibrate_servos(conn):
     YAW_SCALE = yawchange / 100.0
     print("YAW_SCALE=%.2f" % YAW_SCALE)
 
+    write_calibration()
+
     # step 3: find pitch scale
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
     util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
@@ -422,12 +428,15 @@ def calibrate_servos(conn):
     PITCH_SCALE = pitchchange / 100.0
     print("PITCH_SCALE=%.2f" % PITCH_SCALE)
 
+    write_calibration()
+
     # step 4: optimise each rotation
     ROTATION_LEVEL_TOLERANCE = 0
     ROTATION_TOLERANCE = 0
     for rotation in ['level', 'right', 'left', 'up', 'down', 'back']:
         print("optimising %s" % rotation)
-        set_rotation(conn, rotation, wait=True, timeout=60)
+        set_rotation(conn, rotation, wait=True, timeout=120)
+        write_calibration()
 
     # step 5, write calibration.py
     write_calibration()

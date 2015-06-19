@@ -135,8 +135,16 @@ def optimise_attitude(conn, rotation, tolerance, timeout=25, quick=False):
                                                          dcm_demanded, chan1)
         (err_roll, err_pitch) = attitude_error(attitude, expected_roll, expected_pitch)
         logger.info("optimise_attitude: %s err_roll=%.2f err_pitch=%.2f c1=%u c2=%u" % (rotation, err_roll, err_pitch, chan1, chan2))
+        if ((abs(err_roll)+abs(err_pitch) > 5*tolerance and
+             (abs(chan1_change)<1 and abs(chan2_change)<1))):
+            chan1_change += random.uniform(-20, 20)
+            chan2_change += random.uniform(-20, 20)
         if (tries > 0 and (abs(err_roll)+abs(err_pitch) < tolerance or
                            (abs(chan1_change)<1 and abs(chan2_change)<1))):
+            print("roll=%.2f pitch=%.2f expected_roll=%s expected_pitch=%s" % (
+                degrees(attitude.roll),
+                degrees(attitude.pitch),
+                expected_roll, expected_pitch))
             logger.info("%s converged %.2f %.2f tolerance %.1f" % (rotation, err_roll, err_pitch, tolerance))
             # update optimised rotations to save on convergence time for the next board
             ROTATIONS[rotation].chan1 = chan1

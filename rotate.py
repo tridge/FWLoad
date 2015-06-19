@@ -438,6 +438,8 @@ if __name__ == '__main__':
                         help="zero on yaw channel")
     parser.add_argument("--unjam", action='store_true', help="unjam servos")
     parser.add_argument("--calibrate", action='store_true', help="calibrate servos")
+    parser.add_argument("--save", action='store_true', help="save on success")
+    parser.add_argument("--timeout", type=int, default=25, help="timeout in seconds")
     parser.add_argument("rotation", default="level", help="target rotation")
     args = parser.parse_args()
 
@@ -458,4 +460,6 @@ if __name__ == '__main__':
         calibrate_servos(conn)
         
     print("Rotating to %s" % args.rotation)
-    set_rotation(conn, args.rotation, wait=args.wait)
+    set_rotation(conn, args.rotation, wait=args.wait, timeout=args.timeout)
+    if args.save:
+        write_calibration()

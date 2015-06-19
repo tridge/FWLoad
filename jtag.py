@@ -136,9 +136,15 @@ def load_all_firmwares(retries=3):
             continue
 
         # power cycle after loading to ensure the boards can come up cleanly
-        power_control.power_cycle(down_time=4)
-
-        if not util.wait_devices([FMU_DEBUG]):
+        power_retries = 4
+        while power_retries > 0:
+            power_retries -= 1
+            power_control.power_cycle(down_time=4)
+            if util.wait_devices([FMU_DEBUG], timeout=10):
+                break
+            logger.info("Retrying power cycle - tries left %u" % power_retries)
+            
+        if not util.wait_devices([FMU_DEBUG], timeout=10):
             logger.info("Failed to find nsh console device")
             continue
 

@@ -4,6 +4,7 @@
 '''
 
 from config import *
+import configcheck
 import logger
 import accelcal
 import jtag

@@ -50,7 +50,7 @@ ROTATION_TOLERANCE = 5.0
 
 # tolerance of quiescent state in degrees/second. This is how still
 # the jig needs to be between movements of the servos
-GYRO_TOLERANCE = 0.1
+GYRO_TOLERANCE = 0.2
 
 # if gyro offsets are off by more than this value then the ref board was probably moving
 # and we need to power cycle

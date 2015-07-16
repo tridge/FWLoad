@@ -329,7 +329,7 @@ def find_pitch_zero(conn):
             util.set_servo(conn.refmav, PITCH_CHANNEL, pitch)
             wait_quiescent(conn.refmav)
             r1, p1, y1 = get_attitude(conn)
-            print("pitch=%u p=%.1f" % (pitch, p1))
+            print("pitch=%u p=%.1f r=%.1f" % (pitch, p1, r1))
             if abs(r1) > 80:
                 continue
             if best_pitch is None or abs(p1) < best_pitch_value:

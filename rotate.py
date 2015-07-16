@@ -313,7 +313,9 @@ def find_yaw_zero(conn):
             if best_yaw is None or rchange < best_roll_change:
                 best_yaw = yaw
                 best_roll_change = rchange
-                print("best_yaw=%u best_roll_change=%.1f" % (best_yaw, best_roll_change))
+                print("best_yaw=%u best_roll_change=%.1f (r=%.1f/%.1f p=%.1f/%.1f)" % (
+                    best_yaw, best_roll_change,
+                    r1, r2, p1, p2))
         yaw_min = best_yaw-ydelta
         yaw_max = best_yaw+ydelta
     return best_yaw
@@ -327,6 +329,7 @@ def find_pitch_zero(conn):
     for pdelta in [200, 20, 2]:
         for pitch in range(pitch_min, pitch_max+pdelta, pdelta):
             util.set_servo(conn.refmav, PITCH_CHANNEL, pitch)
+            util.set_servo(conn.refmav, YAW_CHANNEL, ROTATIONS['level'].chan1)
             wait_quiescent(conn.refmav)
             r1, p1, y1 = get_attitude(conn)
             print("pitch=%u p=%.1f r=%.1f" % (pitch, p1, r1))
@@ -524,6 +527,7 @@ if __name__ == '__main__':
     parser.add_argument("--calscale", action='store_true', help="calibrate scales")
     parser.add_argument("--save", action='store_true', help="save on success")
     parser.add_argument("--timeout", type=int, default=25, help="timeout in seconds")
+    parser.add_argument("--output", default=None, help="output mavlink to given address")
     parser.add_argument("rotation", default="level", help="target rotation")
     args = parser.parse_args()
 
@@ -537,6 +541,9 @@ if __name__ == '__main__':
 
     print("Turning safety off")
     util.safety_off(conn.refmav)
+
+    if args.output:
+        conn.ref.send('output add %s\n' % args.output)
 
     if args.unjam:
         unjam_servos(conn)

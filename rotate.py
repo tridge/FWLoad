@@ -393,6 +393,7 @@ def calibrate_servos(conn):
 
     # step 2: find pitch zero by finding pitch channel that minimises pitch
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
+    time.sleep(1)
     pitch_zero = find_pitch_zero(conn)
     #pitch_zero = 1855
     ROTATIONS['level'].chan2 = pitch_zero
@@ -409,6 +410,7 @@ def calibrate_servos(conn):
     r1, p1, y1 = get_attitude(conn)
     print(r1, p1, y1)
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero+100)
+    time.sleep(1)
     conn.discard_messages()
     wait_quiescent(conn.refmav)
     conn.discard_messages()
@@ -430,6 +432,7 @@ def calibrate_servos(conn):
     conn.discard_messages()
     r1, p1, y1 = get_attitude(conn)
     util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero+100)
+    time.sleep(1)
     conn.discard_messages()
     wait_quiescent(conn.refmav)
     conn.discard_messages()
@@ -452,6 +455,58 @@ def calibrate_servos(conn):
     # step 5, write calibration.py
     write_calibration()
 
+
+def calscale_servos(conn):
+    '''try to calibrate servo pitch scale'''
+    conn.ref.send('gyrocal\n')
+    conn.ref.expect('Calibrated')
+
+    logger.info("Starting pitch scale calibration")
+    conn.discard_messages()
+
+    yaw_zero = ROTATIONS['level'].chan1
+    pitch_zero = ROTATIONS['level'].chan2
+
+    # step 3: find yaw scale
+    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
+    time.sleep(1)
+    conn.discard_messages()
+    wait_quiescent(conn.refmav)
+    conn.discard_messages()
+    r1, p1, y1 = get_attitude(conn)
+    print(r1, p1, y1)
+    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero+100)
+    time.sleep(1)
+    conn.discard_messages()
+    wait_quiescent(conn.refmav)
+    conn.discard_messages()
+    r2, p2, y2 = get_attitude(conn)
+    print(r2, p2, y2)
+    yawchange = util.wrap_180(y2 - y1)
+    print(y1, y2, yawchange)
+    YAW_SCALE = yawchange / 100.0
+    print("YAW_SCALE=%.2f" % YAW_SCALE)
+
+    # step 3: find pitch scale
+    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
+    time.sleep(1)
+    conn.discard_messages()
+    wait_quiescent(conn.refmav)
+    conn.discard_messages()
+    r1, p1, y1 = get_attitude(conn)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero+100)
+    time.sleep(1)
+    conn.discard_messages()
+    wait_quiescent(conn.refmav)
+    conn.discard_messages()
+    r2, p2, y2 = get_attitude(conn)
+    pitchchange = util.wrap_180(p2 - p1)
+    print(p1, p2, pitchchange)
+    PITCH_SCALE = pitchchange / 100.0
+    print("PITCH_SCALE=%.2f" % PITCH_SCALE)
+
             
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -466,6 +521,7 @@ if __name__ == '__main__':
                         help="zero on yaw channel")
     parser.add_argument("--unjam", action='store_true', help="unjam servos")
     parser.add_argument("--calibrate", action='store_true', help="calibrate servos")
+    parser.add_argument("--calscale", action='store_true', help="calibrate scales")
     parser.add_argument("--save", action='store_true', help="save on success")
     parser.add_argument("--timeout", type=int, default=25, help="timeout in seconds")
     parser.add_argument("rotation", default="level", help="target rotation")
@@ -484,8 +540,12 @@ if __name__ == '__main__':
 
     if args.unjam:
         unjam_servos(conn)
+
     if args.calibrate:
         calibrate_servos(conn)
+
+    if args.calscale:
+        calscale_servos(conn)
         
     print("Rotating to %s" % args.rotation)
     set_rotation(conn, args.rotation, wait=args.wait, timeout=args.timeout)

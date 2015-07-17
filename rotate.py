@@ -309,15 +309,20 @@ def find_yaw_zero(conn):
             wait_quiescent(conn.refmav)
             r2, p2, y2 = get_attitude(conn)
             rchange = abs(util.wrap_180(r2 - r1))
-            print("yaw=%u rchange=%.1f" % (yaw, rchange))
+            print("yaw=%u rchange=%.1f r=%.1f/%.1f p=%.1f/%.1f" % (
+                yaw, rchange,
+                r1, r2, p1, p2))
+            if abs(r1) > 90 or abs(r2) > 90:
+                continue
             if best_yaw is None or rchange < best_roll_change:
                 best_yaw = yaw
                 best_roll_change = rchange
                 print("best_yaw=%u best_roll_change=%.1f (r=%.1f/%.1f p=%.1f/%.1f)" % (
                     best_yaw, best_roll_change,
                     r1, r2, p1, p2))
-        yaw_min = best_yaw-ydelta
-        yaw_max = best_yaw+ydelta
+        if best_yaw is not None:
+            yaw_min = best_yaw-ydelta
+            yaw_max = best_yaw+ydelta
     return best_yaw
 
 def find_pitch_zero(conn):
@@ -473,14 +478,14 @@ def calscale_servos(conn):
     # step 3: find yaw scale
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
     util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
-    time.sleep(1)
+    time.sleep(2)
     conn.discard_messages()
     wait_quiescent(conn.refmav)
     conn.discard_messages()
     r1, p1, y1 = get_attitude(conn)
     print(r1, p1, y1)
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero+100)
-    time.sleep(1)
+    time.sleep(2)
     conn.discard_messages()
     wait_quiescent(conn.refmav)
     conn.discard_messages()
@@ -494,13 +499,13 @@ def calscale_servos(conn):
     # step 3: find pitch scale
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
     util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
-    time.sleep(1)
+    time.sleep(2)
     conn.discard_messages()
     wait_quiescent(conn.refmav)
     conn.discard_messages()
     r1, p1, y1 = get_attitude(conn)
     util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero+100)
-    time.sleep(1)
+    time.sleep(2)
     conn.discard_messages()
     wait_quiescent(conn.refmav)
     conn.discard_messages()

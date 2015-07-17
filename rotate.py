@@ -384,6 +384,65 @@ ROTATIONS = {
     os.rename("FWLoad/calibration-new.py", "FWLoad/calibration_local.py")
             
 
+def find_yaw_scale(conn):
+    '''calibration step 3: find yaw scale'''
+    yaw_zero = ROTATIONS['level'].chan1
+    pitch_zero = ROTATIONS['level'].chan2
+
+    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
+    time.sleep(1)
+    conn.discard_messages()
+    wait_quiescent(conn.refmav)
+    conn.discard_messages()
+    r1, p1, y1 = get_attitude(conn)
+    print(r1, p1, y1)
+    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero+100)
+    time.sleep(1)
+    conn.discard_messages()
+    wait_quiescent(conn.refmav)
+    conn.discard_messages()
+    r2, p2, y2 = get_attitude(conn)
+    print(r2, p2, y2)
+    print(y1, y2)
+    yawchange = util.wrap_180(y2 - y1)
+    YAW_SCALE = yawchange / 100.0
+    print("YAW_SCALE=%.2f" % YAW_SCALE)
+    if abs(YAW_SCALE) < 0.2:
+        print("Bad yaw scale")
+        return False
+    write_calibration()
+    return True
+
+def find_pitch_scale(conn):
+    '''calibration step 4: find pitch scale'''
+    yaw_zero = ROTATIONS['level'].chan1
+    pitch_zero = ROTATIONS['level'].chan2
+
+    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
+    time.sleep(1)
+    conn.discard_messages()
+    wait_quiescent(conn.refmav)
+    conn.discard_messages()
+    r1, p1, y1 = get_attitude(conn)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero+100)
+    time.sleep(1)
+    conn.discard_messages()
+    wait_quiescent(conn.refmav)
+    conn.discard_messages()
+    r2, p2, y2 = get_attitude(conn)
+    print(p1, p2)
+    pitchchange = util.wrap_180(p2 - p1)
+    PITCH_SCALE = pitchchange / 100.0
+    print("PITCH_SCALE=%.2f" % PITCH_SCALE)
+    if abs(PITCH_SCALE) < 0.2:
+        print("Bad pitch scale")
+        return False
+    
+    write_calibration()
+    return True
+
 def calibrate_servos(conn):
     '''try to calibrate servos'''
     conn.ref.send('gyrocal\n')
@@ -408,53 +467,36 @@ def calibrate_servos(conn):
 
     write_calibration()
 
-    # step 3: find yaw scale
-    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
-    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
-    time.sleep(1)
-    conn.discard_messages()
-    wait_quiescent(conn.refmav)
-    conn.discard_messages()
-    r1, p1, y1 = get_attitude(conn)
-    print(r1, p1, y1)
-    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero+100)
-    time.sleep(1)
-    conn.discard_messages()
-    wait_quiescent(conn.refmav)
-    conn.discard_messages()
-    r2, p2, y2 = get_attitude(conn)
-    print(r2, p2, y2)
-    print(y1, y2)
-    yawchange = util.wrap_180(y2 - y1)
-    YAW_SCALE = yawchange / 100.0
-    print("YAW_SCALE=%.2f" % YAW_SCALE)
+    ok = False
+    for i in range(4):
+        ok = find_yaw_scale(conn)
+        if ok:
+            break
+    if not ok:
+        print("Error: ***** Failed to find yaw scale ****")
+        return
 
-    write_calibration()
-
-    # step 3: find pitch scale
-    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
-    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
-    time.sleep(1)
-    conn.discard_messages()
-    wait_quiescent(conn.refmav)
-    conn.discard_messages()
-    r1, p1, y1 = get_attitude(conn)
-    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero+100)
-    time.sleep(1)
-    conn.discard_messages()
-    wait_quiescent(conn.refmav)
-    conn.discard_messages()
-    r2, p2, y2 = get_attitude(conn)
-    print(p1, p2)
-    pitchchange = util.wrap_180(p2 - p1)
-    PITCH_SCALE = pitchchange / 100.0
-    print("PITCH_SCALE=%.2f" % PITCH_SCALE)
-
-    write_calibration()
+    ok = False
+    for i in range(4):
+        ok = find_pitch_scale(conn)
+        if ok:
+            break
+    if not ok:
+        print("Error: ***** Failed to find pitch scale ****")
+        return
 
     # step 4: optimise each rotation
     ROTATION_LEVEL_TOLERANCE = 0
     ROTATION_TOLERANCE = 0
+
+    print("trying right check")
+    try:
+        set_rotation(conn, rotation, wait=True, timeout=120)
+    except Exception:
+        print("Failed right check - reversing PITCH_SCALE")
+        PITCH_SCALE = -PITCH_SCALE
+        write_calibration()
+
     for rotation in ['level', 'right', 'left', 'up', 'down', 'back']:
         print("optimising %s" % rotation)
         set_rotation(conn, rotation, wait=True, timeout=120)
@@ -475,46 +517,23 @@ def calscale_servos(conn):
     yaw_zero = ROTATIONS['level'].chan1
     pitch_zero = ROTATIONS['level'].chan2
 
-    # step 3: find yaw scale
-    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
-    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
-    time.sleep(2)
-    conn.discard_messages()
-    wait_quiescent(conn.refmav)
-    conn.discard_messages()
-    r1, p1, y1 = get_attitude(conn)
-    print(r1, p1, y1)
-    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero+100)
-    time.sleep(2)
-    conn.discard_messages()
-    wait_quiescent(conn.refmav)
-    conn.discard_messages()
-    r2, p2, y2 = get_attitude(conn)
-    print(r2, p2, y2)
-    yawchange = util.wrap_180(y2 - y1)
-    print(y1, y2, yawchange)
-    YAW_SCALE = yawchange / 100.0
-    print("YAW_SCALE=%.2f" % YAW_SCALE)
+    ok = False
+    for i in range(4):
+        ok = find_yaw_scale(conn)
+        if ok:
+            break
+    if not ok:
+        print("Error: ***** Failed to find yaw scale ****")
+        return
 
-    # step 3: find pitch scale
-    util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
-    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero)
-    time.sleep(2)
-    conn.discard_messages()
-    wait_quiescent(conn.refmav)
-    conn.discard_messages()
-    r1, p1, y1 = get_attitude(conn)
-    util.set_servo(conn.refmav, PITCH_CHANNEL, pitch_zero+100)
-    time.sleep(2)
-    conn.discard_messages()
-    wait_quiescent(conn.refmav)
-    conn.discard_messages()
-    r2, p2, y2 = get_attitude(conn)
-    pitchchange = util.wrap_180(p2 - p1)
-    print(p1, p2, pitchchange)
-    PITCH_SCALE = pitchchange / 100.0
-    print("PITCH_SCALE=%.2f" % PITCH_SCALE)
-
+    ok = False
+    for i in range(4):
+        ok = find_pitch_scale(conn)
+        if ok:
+            break
+    if not ok:
+        print("Error: ***** Failed to find pitch scale ****")
+        return
             
 if __name__ == '__main__':
     from argparse import ArgumentParser

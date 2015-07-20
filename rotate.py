@@ -534,6 +534,12 @@ def calscale_servos(conn):
     if not ok:
         print("Error: ***** Failed to find pitch scale ****")
         return
+
+def center_servos(conn):
+    '''center servos at 1500/1500'''
+    logger.info("Centering servos")
+    util.set_servo(conn.refmav, YAW_CHANNEL, 1500)
+    util.set_servo(conn.refmav, PITCH_CHANNEL, 1500)
             
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -549,10 +555,11 @@ if __name__ == '__main__':
     parser.add_argument("--unjam", action='store_true', help="unjam servos")
     parser.add_argument("--calibrate", action='store_true', help="calibrate servos")
     parser.add_argument("--calscale", action='store_true', help="calibrate scales")
+    parser.add_argument("--center", action='store_true', help="center servos")
     parser.add_argument("--save", action='store_true', help="save on success")
     parser.add_argument("--timeout", type=int, default=25, help="timeout in seconds")
     parser.add_argument("--output", default=None, help="output mavlink to given address")
-    parser.add_argument("rotation", default="level", help="target rotation")
+    parser.add_argument("rotation", default="level", nargs='?', help="target rotation")
     args = parser.parse_args()
 
     ROTATION_LEVEL_TOLERANCE = args.tolerance
@@ -574,9 +581,15 @@ if __name__ == '__main__':
 
     if args.calibrate:
         calibrate_servos(conn)
+        sys.exit(0)
 
     if args.calscale:
         calscale_servos(conn)
+        sys.exit(0)
+
+    if args.center:
+        center_servos(conn)
+        sys.exit(0)
         
     print("Rotating to %s" % args.rotation)
     set_rotation(conn, args.rotation, wait=args.wait, timeout=args.timeout)

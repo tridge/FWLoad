@@ -294,12 +294,12 @@ def get_attitude(conn):
 
 def find_yaw_zero(conn):
     '''find the yaw zero'''
-    yaw_min = 1300
-    yaw_max = 1700
+    yaw_min = 1400
+    yaw_max = 1600
     # start in units of 100
     best_yaw = None
     best_roll_change = None
-    for ydelta in [40, 10, 4]:
+    for ydelta in [40, 20, 5]:
         for yaw in range(yaw_min, yaw_max+ydelta, ydelta):
             util.set_servo(conn.refmav, YAW_CHANNEL, yaw)
             util.set_servo(conn.refmav, PITCH_CHANNEL, 1400)
@@ -320,6 +320,8 @@ def find_yaw_zero(conn):
                 print("best_yaw=%u best_roll_change=%.1f (r=%.1f/%.1f p=%.1f/%.1f)" % (
                     best_yaw, best_roll_change,
                     r1, r2, p1, p2))
+                if best_roll_change <= 2.0:
+                    return best_yaw
         if best_yaw is not None:
             yaw_min = best_yaw-ydelta
             yaw_max = best_yaw+ydelta
@@ -327,11 +329,11 @@ def find_yaw_zero(conn):
 
 def find_pitch_zero(conn):
     '''find the pitch zero'''
-    pitch_min = 1300
-    pitch_max = 1700
+    pitch_min = 1400
+    pitch_max = 1600
     best_pitch = None
     best_pitch_value = None
-    for pdelta in [40, 10, 4]:
+    for pdelta in [40, 20, 5]:
         for pitch in range(pitch_min, pitch_max+pdelta, pdelta):
             util.set_servo(conn.refmav, PITCH_CHANNEL, pitch)
             util.set_servo(conn.refmav, YAW_CHANNEL, ROTATIONS['level'].chan1)
@@ -344,6 +346,8 @@ def find_pitch_zero(conn):
                 best_pitch = pitch
                 best_pitch_value = abs(p1)
                 print("best_pitch=%u best_pitch_value=%.1f" % (best_pitch, best_pitch_value))
+                if best_pitch_value <= 2.0:
+                    return best_pitch
         pitch_min = best_pitch-pdelta
         pitch_max = best_pitch+pdelta
     return best_pitch
@@ -443,6 +447,35 @@ def find_pitch_scale(conn):
     write_calibration()
     return True
 
+def guess_rotation_values():
+    '''guess initial rotation values'''
+    ROTATIONS['up'].chan1 = ROTATIONS['level'].chan1
+    ROTATIONS['up'].chan2 = ROTATIONS['level'].chan2 + 90.0/PITCH_SCALE
+    ROTATIONS['up'].roll = None
+    ROTATIONS['up'].pitch = 90
+
+    ROTATIONS['right'].chan1 = ROTATIONS['up'].chan1 + 90.0/YAW_SCALE
+    ROTATIONS['right'].chan2 = ROTATIONS['up'].chan2
+    ROTATIONS['right'].roll = 90
+    ROTATIONS['right'].pitch = 0
+
+    ROTATIONS['left'].chan1 = ROTATIONS['up'].chan1 - 90.0/YAW_SCALE
+    ROTATIONS['left'].chan2 = ROTATIONS['up'].chan2
+    ROTATIONS['left'].roll = -90
+    ROTATIONS['left'].pitch = 0
+
+    ROTATIONS['down'].chan1 = ROTATIONS['level'].chan1
+    ROTATIONS['down'].chan2 = ROTATIONS['level'].chan2 - 90.0/PITCH_SCALE
+    ROTATIONS['down'].roll = None
+    ROTATIONS['down'].pitch = -90
+
+    ROTATIONS['back'].chan1 = ROTATIONS['level'].chan1
+    ROTATIONS['back'].chan2 = ROTATIONS['level'].chan2 - 180.0/PITCH_SCALE
+    if ROTATIONS['back'].chan2 >= 2000:
+        ROTATIONS['back'].chan2 = ROTATIONS['level'].chan2 + 180.0/PITCH_SCALE
+    ROTATIONS['back'].roll = 180
+    ROTATIONS['back'].pitch = 0
+
 def calibrate_servos(conn):
     '''try to calibrate servos'''
     conn.ref.send('gyrocal\n')
@@ -453,7 +486,8 @@ def calibrate_servos(conn):
 
     # step 1: find yaw zero by finding yaw channel value that minimises roll change on pitch channel change
     yaw_zero = find_yaw_zero(conn)
-    #yaw_zero = 1585
+    #yaw_zero = ROTATIONS['level'].chan1
+    
     ROTATIONS['level'].chan1 = yaw_zero
 
     write_calibration()
@@ -462,6 +496,7 @@ def calibrate_servos(conn):
     util.set_servo(conn.refmav, YAW_CHANNEL, yaw_zero)
     time.sleep(1)
     pitch_zero = find_pitch_zero(conn)
+    #pitch_zero = ROTATIONS['level'].chan2
     #pitch_zero = 1855
     ROTATIONS['level'].chan2 = pitch_zero
 
@@ -488,6 +523,8 @@ def calibrate_servos(conn):
     # step 4: optimise each rotation
     ROTATION_LEVEL_TOLERANCE = 0
     ROTATION_TOLERANCE = 0
+
+    guess_rotation_values()
 
     print("trying right check")
     try:

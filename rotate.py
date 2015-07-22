@@ -294,12 +294,12 @@ def get_attitude(conn):
 
 def find_yaw_zero(conn):
     '''find the yaw zero'''
-    yaw_min = 1200
-    yaw_max = 1800
+    yaw_min = 1300
+    yaw_max = 1700
     # start in units of 100
     best_yaw = None
     best_roll_change = None
-    for ydelta in [200, 20, 2]:
+    for ydelta in [40, 10, 4]:
         for yaw in range(yaw_min, yaw_max+ydelta, ydelta):
             util.set_servo(conn.refmav, YAW_CHANNEL, yaw)
             util.set_servo(conn.refmav, PITCH_CHANNEL, 1400)
@@ -327,11 +327,11 @@ def find_yaw_zero(conn):
 
 def find_pitch_zero(conn):
     '''find the pitch zero'''
-    pitch_min = 900
-    pitch_max = 2000
+    pitch_min = 1300
+    pitch_max = 1700
     best_pitch = None
     best_pitch_value = None
-    for pdelta in [200, 20, 2]:
+    for pdelta in [40, 10, 4]:
         for pitch in range(pitch_min, pitch_max+pdelta, pdelta):
             util.set_servo(conn.refmav, PITCH_CHANNEL, pitch)
             util.set_servo(conn.refmav, YAW_CHANNEL, ROTATIONS['level'].chan1)
@@ -491,7 +491,8 @@ def calibrate_servos(conn):
 
     print("trying right check")
     try:
-        set_rotation(conn, rotation, wait=True, timeout=120)
+        set_rotation(conn, 'right', wait=True, timeout=120)
+        write_calibration()
     except Exception:
         print("Failed right check - reversing PITCH_SCALE")
         PITCH_SCALE = -PITCH_SCALE

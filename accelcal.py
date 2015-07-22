@@ -148,6 +148,9 @@ def wait_gyros_healthy(conn):
     util.param_set(conn.test, 'AHRS_ORIENTATION', 0)
     util.param_set(conn.ref, 'AHRS_ORIENTATION', 0)
 
+    # disable mag to prevent it causing affects on the gyro drift
+    util.param_set(conn.ref, 'MAG_ENABLE', 0)
+
     # setup right reference board parameters, in case someone has reset them
     util.param_set(conn.ref, 'THR_FAILSAFE', 0)
     util.param_set(conn.ref, 'RCMAP_ROLL', 5)

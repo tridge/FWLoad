@@ -15,6 +15,7 @@ import sys, os, fcntl
 import logger
 import colour_text
 import connection
+import rotate
 import barcode
 import savedstate
 
@@ -85,6 +86,12 @@ def factory_install(device_barcode):
 ======================================
 ''')
         logger.critical("JTAG firmware install failed")
+        try:
+            conn = connection.Connection(ref_only=True)
+            rotate.center_servos(conn)
+        except Exception as ex:
+            print("Failed to center servos: %s" % ex)
+            pass
         return False
 
     if args.erase:

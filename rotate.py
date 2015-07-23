@@ -36,6 +36,7 @@ def quat_division(quat, rquat):
 
 def gimbal_controller(dcm_estimated, dcm_demanded, chan1):
     '''return the delta to chan1 and chan2'''
+    global PITCH_SCALE, YAW_SCALE
     quat_est = Quaternion(dcm_estimated)
     quat_dem = Quaternion(dcm_demanded)
 
@@ -354,6 +355,7 @@ def find_pitch_zero(conn):
 
 def write_calibration():
     '''write out new calibration file'''
+    global PITCH_SCALE, YAW_SCALE
     f = open("FWLoad/calibration-new.py", mode='w')
     f.write('PITCH_SCALE = %.2f\n' % PITCH_SCALE)
     f.write('YAW_SCALE = %.2f\n' % YAW_SCALE)
@@ -420,6 +422,7 @@ def find_yaw_scale(conn):
 
 def find_pitch_scale(conn):
     '''calibration step 4: find pitch scale'''
+    global PITCH_SCALE, YAW_SCALE
     yaw_zero = ROTATIONS['level'].chan1
     pitch_zero = ROTATIONS['level'].chan2
 
@@ -449,6 +452,7 @@ def find_pitch_scale(conn):
 
 def guess_rotation_values():
     '''guess initial rotation values'''
+    global PITCH_SCALE, YAW_SCALE
     ROTATIONS['up'].chan1 = ROTATIONS['level'].chan1
     ROTATIONS['up'].chan2 = ROTATIONS['level'].chan2 + 90.0/PITCH_SCALE
     ROTATIONS['up'].roll = None
@@ -532,6 +536,7 @@ def calibrate_servos(conn):
         write_calibration()
     except Exception:
         print("Failed right check - reversing PITCH_SCALE")
+        global PITCH_SCALE
         PITCH_SCALE = -PITCH_SCALE
         write_calibration()
 

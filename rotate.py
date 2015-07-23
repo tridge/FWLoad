@@ -581,8 +581,12 @@ def calscale_servos(conn):
 def center_servos(conn):
     '''center servos at 1500/1500'''
     logger.info("Centering servos")
-    util.set_servo(conn.refmav, YAW_CHANNEL, 1500)
-    util.set_servo(conn.refmav, PITCH_CHANNEL, 1500)
+    try:
+        util.set_servo(conn.refmav, YAW_CHANNEL, 1500)
+        util.set_servo(conn.refmav, PITCH_CHANNEL, 1500)
+    except Exception as ex:
+        print("Failed centering servos: %s" % ex)
+        pass
             
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -624,10 +628,12 @@ if __name__ == '__main__':
 
     if args.calibrate:
         calibrate_servos(conn)
+        center_servos(conn)
         sys.exit(0)
 
     if args.calscale:
         calscale_servos(conn)
+        center_servos(conn)
         sys.exit(0)
 
     if args.center:
@@ -638,3 +644,4 @@ if __name__ == '__main__':
     set_rotation(conn, args.rotation, wait=args.wait, timeout=args.timeout)
     if args.save:
         write_calibration()
+

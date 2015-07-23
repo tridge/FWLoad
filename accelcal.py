@@ -281,14 +281,18 @@ def accel_calibrate():
         accel_calibrate_run(conn)
         test_sensors.check_accel_cal(conn)
         test_sensors.check_gyro_cal(conn)
+        rotate.center_servos(conn)
     except Exception as ex:
+        rotate.center_servos(conn)
         conn.close()
         util.show_error('Accel calibration complete???',  ex)
 
     try:
         # we run the sensor checks from here to avoid re-opening the links
         test_sensors.check_all_sensors(conn)
+        rotate.center_servos(conn)
     except Exception as ex:
+        rotate.center_servos(conn)
         conn.close()
         util.show_error('Test sensors failed', ex)
 
@@ -301,6 +305,7 @@ def accel_calibrate():
         conn.close()
         util.show_error('Parameter load failed', ex)
 
+    rotate.center_servos(conn)
     conn.close()
 
 def accel_calibrate_retries(retries=4):

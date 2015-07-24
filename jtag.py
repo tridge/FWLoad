@@ -159,7 +159,8 @@ def load_all_firmwares(retries=3):
                             'ArduPilot started OK',
                             'format failed',
                             'Opening USB nsh',
-                            'no RGB led'])
+                            'no RGB led',
+                            'rgbled: init failed'])
         except Exception as ex:
             failure = "******* Failed to get data from NSH console *******"
             pass
@@ -184,7 +185,9 @@ def load_all_firmwares(retries=3):
             if i == 5:
                 failure = "****** ArduPilot failed to start - general failure ******"
             if i == 6:
-                failure = "****** RGB LED not found ******"
+                failure = "****** RGB LED not found on I2C ******"
+            if i == 7:
+                failure = "****** RGB LED initialisation failed on I2C ******"
         if failure is not None:
             logger.info(failure)
             colour_text.print_fail(failure)

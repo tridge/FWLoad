@@ -26,7 +26,8 @@ def adjust_ahrs_trim(conn, level_attitude):
     '''
 
     # start with board right way up
-    rotate.set_rotation(conn, 'level')
+    if ETE == 0:
+        rotate.set_rotation(conn, 'level')
 
     # we need to work out what the error in attitude of the 3 IMUs on the test jig is
     # to do that we start with it level, and measure the roll/pitch as compared to the reference
@@ -88,10 +89,12 @@ def adjust_ahrs_trim(conn, level_attitude):
         util.failure("Test board pitch error")
 
     # flip upside down for the trim calculation
-    rotate.set_rotation(conn, 'back')
+    if ETE == 0:
+        rotate.set_rotation(conn, 'back')
 
     # set orientation upside down for trim measurement
     util.param_set(conn.test, 'AHRS_ORIENTATION', 12)
+    util.param_set(conn.ref, 'AHRS_ORIENTATION', 12)
 
     # sleep an extra four seconds - we need to be very sure the board is still for trim
     time.sleep(4)
@@ -137,7 +140,7 @@ def adjust_ahrs_trim(conn, level_attitude):
     util.param_set(conn.test, 'AHRS_TRIM_Y', trim_y)
     time.sleep(0.2)
     logger.debug("Set trims AHRS_TRIM_X=%.4f AHRS_TRIM_Y=%.4f" % (trim_x, trim_y))
-    
+    util.param_set(conn.ref, 'AHRS_ORIENTATION', 0)
 
 def wait_gyros_healthy(conn):
     '''wait for gyros to be healthy'''
@@ -205,21 +208,22 @@ def wait_gyros(conn):
 def accel_calibrate_run(conn):
     '''run accelcal'''
     logger.info("STARTING ACCEL CALIBRATION")
-
     wait_gyros(conn)
     time.sleep(2)
-
-    logger.debug("re-running gyro cal")
-    conn.discard_messages()
-    conn.ref.send('gyrocal\n')
-    conn.test.send('gyrocal\n')
-    conn.ref.expect('Calibrated')
-    conn.test.expect('Calibrated')
-    wait_gyros(conn)
+    if ETE == 0:
+        logger.debug("re-running gyro cal")
+        conn.discard_messages()
+        conn.ref.send('gyrocal\n')
+        conn.test.send('gyrocal\n')
+        conn.ref.expect('Calibrated')
+        conn.test.expect('Calibrated')
+        wait_gyros(conn)
+        rotate.set_rotation(conn, 'level', wait=False)
 
     logger.info("Turning safety off")
-    rotate.set_rotation(conn, 'level', wait=False)
     util.safety_off(conn.refmav)
+    logger.info("Turning on testjig mode")
+    conn.test.send("factory_test start\n")
 
     # use zero trims on reference board
     util.param_set(conn.ref, 'AHRS_TRIM_X', 0)
@@ -246,17 +250,20 @@ def accel_calibrate_run(conn):
         util.failure("Accel calibration failed")
     #logger.info(conn.test.before)
     logger.info("Calibration successful")
+    
     rotate.write_calibration()
-    rotate.set_rotation(conn, 'level', wait=False)
 
-    # rotate while integrating gyros to test all gyros are working
-    rotate.gyro_integrate(conn)
+    if ETE == 0:
+        rotate.set_rotation(conn, 'level', wait=False)
 
     # get AHRS_TRIM_{X,Y} right
     adjust_ahrs_trim(conn, level_attitude)
 
+    # rotate while integrating gyros to test all gyros are working
+    rotate.gyro_integrate(conn)
+
     # finish in level position
-    rotate.set_rotation(conn, 'level', quick=True)
+    rotate.set_rotation(conn, 'level')
 
 
 
@@ -281,18 +288,14 @@ def accel_calibrate():
         accel_calibrate_run(conn)
         test_sensors.check_accel_cal(conn)
         test_sensors.check_gyro_cal(conn)
-        rotate.center_servos(conn)
     except Exception as ex:
-        rotate.center_servos(conn)
         conn.close()
         util.show_error('Accel calibration complete???',  ex)
 
     try:
         # we run the sensor checks from here to avoid re-opening the links
         test_sensors.check_all_sensors(conn)
-        rotate.center_servos(conn)
     except Exception as ex:
-        rotate.center_servos(conn)
         conn.close()
         util.show_error('Test sensors failed', ex)
 
@@ -305,7 +308,8 @@ def accel_calibrate():
         conn.close()
         util.show_error('Parameter load failed', ex)
 
-    rotate.center_servos(conn)
+    if ETE == 0:
+            rotate.center_servos(conn)
     conn.close()
 
 def accel_calibrate_retries(retries=4):

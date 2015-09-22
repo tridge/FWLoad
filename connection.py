@@ -129,12 +129,12 @@ class Connection(object):
             self.close()
             util.show_error('testing reference gyros', ex)
 
-        logger.info("Setting rotation level")
-        try:
-            rotate.set_rotation(self, 'level', wait=False)
-        except Exception as ex:
-            self.close()
-            util.show_error("unable to set safety off", ex)
+#        logger.info("Setting rotation level")
+#        try:
+#            rotate.set_rotation(self, 'level', wait=False)
+#        except Exception as ex:
+#            self.close()
+#            util.show_error("unable to set safety off", ex)
 
     def discard_messages(self):
         '''discard pending mavlink messages'''

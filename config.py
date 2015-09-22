@@ -8,9 +8,12 @@ import os, sys
 
 GDB="arm-none-eabi-gdb"
 
+#Use ETE motion system. Set to 1 to enable 0 to disable.
+ETE=1
+
 # serial numbers of black magic probes in the various test jigs
-FMU_BMAGIC_SERIAL=[ "B5D9B0CD", "B5DFB7C6","B5DDB0F0","B5DDB0D6","B5DCB0E4" ]
-IO_BMAGIC_SERIAL=[ "B5DBB0CE", "B5DDB7C5", "B5DAB7D3","B5DDB0E3","B5DEB0F1" ]
+FMU_BMAGIC_SERIAL=[ "B5D9B0CD", "B5DFB7C6", "B5DDB0F0", "B5DDB0D6", "B5DCB0E4", "B6DDCC0E", "B6DBCD09", "B6DECB0F", "B6D6CAEC", "B6DDCADE", "B6D4CAFB", "B6D7CDDE", "B6D7CBFF", "B6DDB8DA", "B6D9CE0A", "B6D5CBF7", "B6DACAFA"]
+IO_BMAGIC_SERIAL=[ "B5DBB0CE", "B5DDB7C5",  "B5DAB7D3", "B5DDB0E3", "B5DEB0F1", "B6D7CB07", "B6D9CE0D", "B6DDCB08", "B6D9CAEB", "B6DAB8D7", "B6D7CAF8", "B6D9CD00", "B6DBCC08", "B6D8CBEE", "B6D8CBDB", "B6DCCBFA", "B6DCCAF9"]
 
 # serial numbers of the barcode scanners
 BARCODE_SCANNER_SERIAL=[ "16C0_XXXXXX" ]
@@ -23,8 +26,8 @@ BL_FMU="FW/px4fmuv2_bl.elf"
 
 # the expected CPU IDs shown by gdb. This allows us to tell if the
 # jtag connections are the right way around
-CPUID_IO="STM32, Medium density"
-CPUID_FMU="STM32F4xx"
+CPUID_IO=["STM32, Medium density", "STM32F1 medium density"]
+CPUID_FMU=["STM32F4xx"]
 
 USB_DEV_TEST="/dev/serial/by-id/usb-3D_Robotics_PX4_FMU_v2.x_0-if00"
 USB_DEV_REFERENCE="/dev/serial/by-id/usb-3D_Robotics_PH_REFERENCE_0-if00"

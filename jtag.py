@@ -25,13 +25,10 @@ def load_firmware(device, firmware, mcu_id, run=False):
         gdb.expect("Remote debugging using")
         gdb.expect("(gdb)")
         gdb.send("monitor swdp_scan\n")
-        cpu = gdb.expect([CPUID_IO, CPUID_FMU])
-        if cpu == 0:
-            if mcu_id != CPUID_IO:
-                util.failure("Incorrect CPU ID '%s' - expected '%s'" % (CPUID_IO, mcu_id))
-        else:
-            if mcu_id != CPUID_FMU:
-                util.failure("Incorrect CPU ID '%s' - expected '%s'" % (CPUID_FMU, mcu_id))
+        ids = CPUID_IO + CPUID_FMU
+        cpu = gdb.expect(ids)
+        if ids[cpu] not in mcu_id:
+            util.failure("Incorrect CPU ID '%s' - expected '%s'" % (ids[cpu], mcu_id))
         gdb.expect("(gdb)")
         gdb.send("attach 1\n")
         gdb.expect("(gdb)")
@@ -62,13 +59,10 @@ def erase_firmware(device, mcu_id):
         gdb.expect("Remote debugging using")
         gdb.expect("(gdb)")
         gdb.send("monitor swdp_scan\n")
-        cpu = gdb.expect([CPUID_IO, CPUID_FMU])
-        if cpu == 0:
-            if mcu_id != CPUID_IO:
-                util.failure("Incorrect CPU ID '%s' - expected '%s'" % (CPUID_IO, mcu_id))
-        else:
-            if mcu_id != CPUID_FMU:
-                util.failure("Incorrect CPU ID '%s' - expected '%s'" % (CPUID_FMU, mcu_id))
+        ids = CPUID_IO + CPUID_FMU
+        cpu = gdb.expect(ids)
+        if ids[cpu] not in mcu_id:
+            util.failure("Incorrect CPU ID '%s' - expected '%s'" % (ids[cpu], mcu_id))
         gdb.expect("(gdb)")
         gdb.send("attach 1\n")
         gdb.expect("(gdb)")
@@ -91,19 +85,16 @@ def attach_gdb(device, mcu_id, firmware=None):
     cmd = GDB
     if firmware is not None:
         cmd += " " + firmware
-    gdb = pexpect.spawn(cmd, logfile=None, timeout=10)
+    gdb = pexpect.spawn(cmd, logfile=sys.stdout, timeout=10)
     gdb.expect("(gdb)")
     gdb.send("target extended %s\n" % device)
     gdb.expect("Remote debugging using")
     gdb.expect("(gdb)")
     gdb.send("monitor swdp_scan\n")
-    cpu = gdb.expect([CPUID_IO, CPUID_FMU])
-    if cpu == 0:
-        if mcu_id != CPUID_IO:
-            util.failure("Incorrect CPU ID '%s' - expected '%s'" % (CPUID_IO, mcu_id))
-    else:
-        if mcu_id != CPUID_FMU:
-            util.failure("Incorrect CPU ID '%s' - expected '%s'" % (CPUID_FMU, mcu_id))
+    ids = CPUID_IO + CPUID_FMU
+    cpu = gdb.expect(ids)
+    if ids[cpu] not in mcu_id:
+        util.failure("Incorrect CPU ID '%s' - expected '%s'" % (ids[cpu], mcu_id))
     gdb.expect("(gdb)")
     gdb.send("attach 1\n")
     gdb.expect("(gdb)")
@@ -113,6 +104,7 @@ def attach_gdb(device, mcu_id, firmware=None):
         logger.info("Use 'load' to load the firmware")
         logger.info("Use 'quit' to quit")
     gdb.send('\n')
+    gdb.logfile = None
     gdb.interact()
 
 def load_all_firmwares(retries=3):
@@ -140,11 +132,12 @@ def load_all_firmwares(retries=3):
         while power_retries > 0:
             power_retries -= 1
             power_control.power_cycle(down_time=4)
-            if util.wait_devices([FMU_DEBUG], timeout=5):
+            logger.debug("restarting power")
+            if util.wait_devices([FMU_DEBUG], timeout=10):
                 break
             logger.info("Retrying power cycle - tries left %u" % power_retries)
             
-        if not util.wait_devices([FMU_DEBUG], timeout=10):
+        if not util.wait_devices([FMU_DEBUG], timeout=20):
             logger.info("Failed to find nsh console device")
             continue
 

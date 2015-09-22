@@ -15,11 +15,20 @@ class Rotation(object):
         self.pitch = pitch
 
 ROTATIONS = {
-#                          YAW , Pitch ,
 	'level' : Rotation(1500, 1500, 0, 0),
 	'right' : Rotation(1700, 1720, 90, 0),
 	'left' : Rotation(1300, 1420, -90, 0),
 	'up' : Rotation(1500, 1720, None, 90),
 	'down' : Rotation(1900, 1720, None, -90),
-	'back' : Rotation(1900, 1920, 180, 0)
+	'back' : Rotation(1900, 1920, 180, 0),
+}
+
+ROTATIONS_ETE = {
+	# Yaw , Pitch
+        'level' : Rotation(0, 0, 0, 0),
+        'right' : Rotation(00, 90, -90, 0),
+        'left' : Rotation(180, 90, 90, 0),
+        'up' : Rotation(90, 90, None, 90),
+        'down' : Rotation(270, 90, None, -90),
+        'back' : Rotation(180, 180, 180, 0)
 }

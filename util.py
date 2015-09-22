@@ -97,6 +97,11 @@ def set_servo(mav, servo, value):
                               servo, value,
                               0, 0, 0, 0, 0)
 
+def factory_test (test):
+    '''send a command to set jig mode'''
+    test.send('factory_test start\n')
+
+
 def wrap_180(angle):
     while angle > 180:
         angle -= 360.0

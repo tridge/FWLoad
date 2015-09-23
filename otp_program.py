@@ -117,57 +117,66 @@ if __name__ == '__main__':
     conn.write("otp show\r\n".encode())
 
     count = 0
+    lock = []
     print "Data in OTP segments:"
     while True:
         line  = conn.readline()
         if count == 2:
             info = line.split()
             if info[1] == 'U':
-                lock = "Unlocked\t"
+                lock.append("Unlocked\t")
             else:
-                lock = "Locked\t"
+                lock.append("Locked\t")
             string = info[2].decode('hex')
-            print "Segment", info[0], lock, "Manufacturer Info:\t", string[:string.index('\xff')]
+            print "Segment", info[0], lock[count - 2], "Manufacturer Info:\t", string[:string.index('\xff')]
         elif count == 3:
             info = line.split()
             if info[1] == 'U':
-                lock = "Unlockedt\t"
+                lock.append("Unlocked\t")
             else:
-                lock = "Locked\t"
+                lock.append("Locked\t")
             string = info[2].decode('hex')
-            print "Segment", info[0], lock, "Test Machine Info:\t", string[:string.index('\xff')]
+            print "Segment", info[0], lock[count - 2], "Test Machine Info:\t", string[:string.index('\xff')]
         elif count == 4:
             info = line.split()
             if info[1] == 'U':
-                lock = "Unlocked\t"
+                lock.append("Unlocked\t")
             else:
-                lock = "Locked\t"
+                lock.append("Locked\t")
             string = info[2].decode('hex')
-            print "Segment", info[0], lock, "Manufacturing Info:\t", string[:string.index('\xff')]
+            print "Segment", info[0], lock[count - 2], "Manufacturing Info:\t", string[:string.index('\xff')]
         elif count == 5:
             info = line.split()
             if info[1] == 'U':
-                lock = "Unlocked\t"
+                lock.append("Unlocked\t")
             else:
-                lock = "Locked\t"
+                lock.append("Locked\t")
             string = info[2].decode('hex')
-            print "Segment", info[0], lock, "Date of Testing:\t", string[:string.index('\xff')]
+            print "Segment", info[0], lock[count - 2], "Date of Testing:\t", string[:string.index('\xff')]
         elif count == 6:
             info = line.split()
             if info[1] == 'U':
-                lock = "Unlocked\t"
+                lock.append("Unlocked\t")
             else:
-                lock = "Locked\t"
+                lock.append("Locked\t")
             string = info[2].decode('hex')
-            print "Segment", info[0], lock, "Time of Testing:\t", string[:string.index('\xff')]
-        elif count == 7 or count == 8:
+            print "Segment", info[0], lock[count - 2], "Time of Testing:\t", string[:string.index('\xff')]
+        elif count == 7:
             info = line.split()
             if info[1] == 'U':
-                lock = "Unlocked\t"
+                lock.append("Unlocked\t")
             else:
-                lock = "Locked\t"
-            accel_data = struct.unpack('6f', bytearray.fromhex(info[2][:48]))
-            print "Segment", info[0], lock, "Accel :\t", accel_data
+                lock.append("Locked\t")
+            accel_data0 = struct.unpack('6f', bytearray.fromhex(info[2][:48]))
+            print "Segment", info[0], lock[count - 2], "Accel :\t", accel_data0
+        elif count == 8:
+            info = line.split()
+            if info[1] == 'U':
+                lock.append("Unlocked\t")
+            else:
+                lock.append("Locked\t")
+            accel_data2 = struct.unpack('6f', bytearray.fromhex(info[2][:48]))
+            print "Segment", info[0], lock[count - 2], "Accel :\t", accel_data2
 
         count = count+1
         if count == 17:
@@ -181,7 +190,7 @@ if __name__ == '__main__':
     print "Writing...", args.data
     block = 1
     retry = 0
-    while block < 8:
+    while block <= 7:
         if block == 6 or block == 7:
             accel_data = [float(x) for x in args.data[block-1].split(',') if x]
             packed_accel_data = struct.pack('%sf' % len(accel_data), *accel_data)
@@ -207,15 +216,23 @@ if __name__ == '__main__':
             crc32val = crc32_tab[(crc32val ^ src[i]) & 0xff] ^ (crc32val >> 8);
         crc = hex(crc32val)
         print block,":",information, crc
-        cmd = "otp write " + str(block) + " " + information + " " + crc + "\r\n"
-        conn.write(cmd)
+        if lock[block-1] == "Unlocked\t":
+            cmd = "otp write " + str(block) + " " + information + " " + crc + "\r\n"
+            conn.write(cmd)
+        else:
+            print "Write Failed: Block %u is Locked!" % block
+            block = block + 1
+            continue
+
+        count = 0
+        retry_read = 0
+        first_line_detected = False
         time.sleep(1)
+        success = False
 
         #Verify Information
-        print "Verifying..." 
+        print "Verifying..."
         conn.write("otp show\r\n".encode())
-        count = 0
-        first_line_detected = False
         while True:
             line = conn.readline()
             if first_line_detected == False:
@@ -226,25 +243,31 @@ if __name__ == '__main__':
                     continue
             if count == block:
                 info = line.split()
+                retry_read = 0
                 if info[2] == information:
                     print "Verification Successful!!"
-                    cmd = "otp lock "+str(block)+" "+str(block)+"\r\n"
-                    conn.write(cmd)
-                    print "\nSegment " + str(block) + " locked!"
-                    block = block + 1
+                    success = True
+                    update_block = block + 1
                     retry = 0
-                    break
                 else:
-                    print "Verification Failed!"
                     if retry < 3:
-			retry = retry + 1
-		        print "Retrying %u" % retry
-	            else:
+                        retry = retry + 1
+                        print "Verification Failed!\n"
+                        print "Retrying writing to block %u: %u" % (block,retry)
+                    else:
+                        print "Write Failed to Block %u!\n" % block
                         retry = 0
-                        block = block + 1
-                    
+                        update_block = block + 1
+                        success = False
+            
             count = count+1
             if count == 17:
                 break;
+        block = update_block
+        time.sleep(1)
+        if success == True:
+            cmd = "\r\notp lock "+str(block - 1)+" "+str(block)+"\r\n"
+            conn.write(cmd)
+            print "Segment " + str(block - 1) + " locked!\n"
         
     conn.close()

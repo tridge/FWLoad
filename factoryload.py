@@ -158,6 +158,7 @@ def factory_install(device_barcode):
         p1 = Popen(['python', script_dir + '/otp_program.py', '--port', FMU_DEBUG,'--only-display',"abc"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         output, err = p1.communicate()
         logger.info(output)
+    time.sleep(1)
     #conn = connection.Connection(ref_only=False)
     #otp_program_mod.Display_OTP(conn)
 

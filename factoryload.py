@@ -151,7 +151,7 @@ def factory_install(device_barcode):
         return False
 
     # all OK
-
+    logger.info("Writting OTP region in STM32")
     #Add OTP HERE
     script_dir = os.path.dirname(os.path.abspath(__file__))
     if args.otp_show:

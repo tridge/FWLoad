@@ -109,80 +109,119 @@ if __name__ == '__main__':
         # open failed, rate-limit our attempts
         print "Port Not Found!"
         sys.exit()
-
-    conn.close()
-    conn.open()
-
-    #Display Information
-    conn.write("otp show\r\n".encode())
-
-    count = 0
+    retry = 0
+    read_success = False
     lock = []
-    print "Data in OTP segments:"
-    while True:
-        line  = conn.readline()
-        if count == 2:
-            info = line.split()
-            if info[1] == 'U':
-                lock.append("Unlocked\t")
-            else:
-                lock.append("Locked\t")
-            string = info[2].decode('hex')
-            print "Segment", info[0], lock[count - 2], "Manufacturer Info:\t", string[:string.index('\xff')]
-        elif count == 3:
-            info = line.split()
-            if info[1] == 'U':
-                lock.append("Unlocked\t")
-            else:
-                lock.append("Locked\t")
-            string = info[2].decode('hex')
-            print "Segment", info[0], lock[count - 2], "Test Machine Info:\t", string[:string.index('\xff')]
-        elif count == 4:
-            info = line.split()
-            if info[1] == 'U':
-                lock.append("Unlocked\t")
-            else:
-                lock.append("Locked\t")
-            string = info[2].decode('hex')
-            print "Segment", info[0], lock[count - 2], "Manufacturing Info:\t", string[:string.index('\xff')]
-        elif count == 5:
-            info = line.split()
-            if info[1] == 'U':
-                lock.append("Unlocked\t")
-            else:
-                lock.append("Locked\t")
-            string = info[2].decode('hex')
-            print "Segment", info[0], lock[count - 2], "Date of Testing:\t", string[:string.index('\xff')]
-        elif count == 6:
-            info = line.split()
-            if info[1] == 'U':
-                lock.append("Unlocked\t")
-            else:
-                lock.append("Locked\t")
-            string = info[2].decode('hex')
-            print "Segment", info[0], lock[count - 2], "Time of Testing:\t", string[:string.index('\xff')]
-        elif count == 7:
-            info = line.split()
-            if info[1] == 'U':
-                lock.append("Unlocked\t")
-            else:
-                lock.append("Locked\t")
-            accel_data0 = struct.unpack('6f', bytearray.fromhex(info[2][:48]))
-            print "Segment", info[0], lock[count - 2], "Accel :\t", accel_data0
-        elif count == 8:
-            info = line.split()
-            if info[1] == 'U':
-                lock.append("Unlocked\t")
-            else:
-                lock.append("Locked\t")
-            accel_data2 = struct.unpack('6f', bytearray.fromhex(info[2][:48]))
-            print "Segment", info[0], lock[count - 2], "Accel :\t", accel_data2
+    written = []
+    while retry < 10:
+        conn.close()
+        conn.open()
 
-        count = count+1
-        if count == 17:
-            break;
+        #Display Information
+        conn.write("otp show\r\n".encode())
 
-    if args.only_display:
+        count = 0
+        if read_success == True:
+            break
+        print "Data in OTP segments:"
+        last_time = time.time()
+        while True:
+            this_time = time.time()
+            if (this_time - last_time) > 2:
+                retry = retry + 1
+                break;
+            line  = conn.readline()
+            if count == 2:
+                info = line.split()
+                if info[1] == 'U':
+                    lock.append("Unlocked\t")
+                else:
+                    lock.append("Locked\t")
+                if info[2][:4] != "ffff":
+                    written.append(True)
+                else:
+                    written.append(False)
+                string = info[2].decode('hex')
+                print "Segment", info[0], lock[count - 2], "Manufacturer Info:\t", string[:string.index('\xff')], " Written:", written[count -2]
+            elif count == 3:
+                info = line.split()
+                if info[1] == 'U':
+                    lock.append("Unlocked\t")
+                else:
+                    lock.append("Locked\t")
+                if info[2][:4] != "ffff":
+                    written.append(True)
+                else:
+                    written.append(False)
+                string = info[2].decode('hex')
+                print "Segment", info[0], lock[count - 2], "Test Machine Info:\t", string[:string.index('\xff')], " Written:", written[count -2]
+            elif count == 4:
+                info = line.split()
+                if info[1] == 'U':
+                    lock.append("Unlocked\t")
+                else:
+                    lock.append("Locked\t")
+                if info[2][:4] != "ffff":
+                    written.append(True)
+                else:
+                    written.append(False)
+                string = info[2].decode('hex')
+                print "Segment", info[0], lock[count - 2], "Manufacturing Info:\t", string[:string.index('\xff')], " Written:", written[count -2]
+            elif count == 5:
+                info = line.split()
+                if info[1] == 'U':
+                    lock.append("Unlocked\t")
+                else:
+                    lock.append("Locked\t")
+                if info[2][:4] != "ffff":
+                    written.append(True)
+                else:
+                    written.append(False)
+                string = info[2].decode('hex')
+                print "Segment", info[0], lock[count - 2], "Date of Testing:\t", string[:string.index('\xff')], " Written:", written[count -2]
+            elif count == 6:
+                info = line.split()
+                if info[1] == 'U':
+                    lock.append("Unlocked\t")
+                else:
+                    lock.append("Locked\t")
+                if info[2][:4] != "ffff":
+                    written.append(True)
+                else:
+                    written.append(False)
+                string = info[2].decode('hex')
+                print "Segment", info[0], lock[count - 2], "Time of Testing:\t", string[:string.index('\xff')], " Written:", written[count -2]
+            elif count == 7:
+                info = line.split()
+                if info[1] == 'U':
+                    lock.append("Unlocked\t")
+                else:
+                    lock.append("Locked\t")
+                if info[2][:4] != "ffff":
+                    written.append(True)
+                else:
+                    written.append(False)
+                accel_data0 = struct.unpack('6f', bytearray.fromhex(info[2][:48]))
+                print "Segment", info[0], lock[count - 2], "Accel :\t", accel_data0, " Written:", written[count -2]
+            elif count == 8:
+                info = line.split()
+                if info[1] == 'U':
+                    lock.append("Unlocked\t")
+                else:
+                    lock.append("Locked\t")
+                if info[2][:4] != "ffff":
+                    written.append(True)
+                else:
+                    written.append(False)
+                accel_data2 = struct.unpack('6f', bytearray.fromhex(info[2][:48]))
+                print "Segment", info[0], lock[count - 2], "Accel :\t", accel_data2, " Written:", written[count -2]
+                read_success = True
+
+            count = count+1
+            if count == 17:
+                break;
+
+    if args.only_display or read_success == False:
         conn.close()
         sys.exit(1)
 
@@ -215,10 +254,18 @@ if __name__ == '__main__':
         for i in range (0,32):
             crc32val = crc32_tab[(crc32val ^ src[i]) & 0xff] ^ (crc32val >> 8);
         crc = hex(crc32val)
-        print block,":",information, crc
-        if lock[block-1] == "Unlocked\t":
+
+        print block,":",information, crc, " W:", written[block-1] 
+        if lock[block-1] == "Unlocked\t" and written[block-1] == False:
             cmd = "otp write " + str(block) + " " + information + " " + crc + "\r\n"
             conn.write(cmd)
+        elif lock[block-1] == "Unlocked\t" and written[block-1] == True:
+            time.sleep(1)
+            cmd = "\r\notp lock "+str(block)+" "+str(block)+"\r\n"
+            conn.write(cmd)
+            print "Segment " + str(block) + " locked!\n"
+            block = block + 1
+            continue
         else:
             print "Write Failed: Block %u is Locked!" % block
             block = block + 1
@@ -233,6 +280,7 @@ if __name__ == '__main__':
         #Verify Information
         print "Verifying..."
         conn.write("otp show\r\n".encode())
+        update_block = block
         while True:
             line = conn.readline()
             if first_line_detected == False:
@@ -271,3 +319,4 @@ if __name__ == '__main__':
             print "Segment " + str(block - 1) + " locked!\n"
         
     conn.close()
+

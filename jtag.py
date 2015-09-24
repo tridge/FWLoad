@@ -118,7 +118,7 @@ def load_all_firmwares(retries=3):
             continue
 
         try:
-            load_firmware(IO_JTAG, FW_IO, CPUID_IO)
+            #load_firmware(IO_JTAG, FW_IO, CPUID_IO)
             load_firmware(IO_JTAG, BL_IO, CPUID_IO)
 
             load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)

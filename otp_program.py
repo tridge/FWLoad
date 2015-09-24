@@ -96,15 +96,15 @@ if __name__ == '__main__':
             if "linux" in _platform:
                     # Linux, don't open Mac OS and Win ports
                     if not "COM" in port and not "tty.usb" in port:
-                            conn = serial.Serial(port, args.baud, timeout=0.5)
+                            conn = serial.Serial(port, args.baud, timeout=5)
             elif "darwin" in _platform:
                     # OS X, don't open Windows and Linux ports
                     if not "COM" in port and not "ACM" in port:
-                            conn = serial.Serial(port, args.baud, timeout=0.5)
+                            conn = serial.Serial(port, args.baud, timeout=5)
             elif "win" in _platform:
                     # Windows, don't open POSIX ports
                     if not "/" in port:
-                            conn = serial.Serial(port, args.baud, timeout=0.5)
+                            conn = serial.Serial(port, args.baud, timeout=5)
     except Exception:
         # open failed, rate-limit our attempts
         print "Port Not Found!"
@@ -113,7 +113,8 @@ if __name__ == '__main__':
     read_success = False
     lock = []
     written = []
-    while retry < 10:
+    while retry < 3:
+        time.sleep(1)
         conn.close()
         conn.open()
 
@@ -127,7 +128,7 @@ if __name__ == '__main__':
         last_time = time.time()
         while True:
             this_time = time.time()
-            if (this_time - last_time) > 2:
+            if (this_time - last_time) > 5:
                 retry = retry + 1
                 break;
             line  = conn.readline()
@@ -259,12 +260,18 @@ if __name__ == '__main__':
         if lock[block-1] == "Unlocked\t" and written[block-1] == False:
             cmd = "otp write " + str(block) + " " + information + " " + crc + "\r\n"
             conn.write(cmd)
+            print cmd
         elif lock[block-1] == "Unlocked\t" and written[block-1] == True:
-            time.sleep(1)
-            cmd = "\r\notp lock "+str(block)+" "+str(block)+"\r\n"
+            cmd = "otp lock "+str(block)+" "+str(block)+"\r\n"
             conn.write(cmd)
             print "Segment " + str(block) + " locked!\n"
             block = block + 1
+            last_time = time.time()
+            while (time.time() - last_time) < 2:
+                line = conn.readline()
+                if line != None:
+                  if line[0] == 'L' or line[0] == 'F':
+                      break
             continue
         else:
             print "Write Failed: Block %u is Locked!" % block
@@ -274,49 +281,64 @@ if __name__ == '__main__':
         count = 0
         retry_read = 0
         first_line_detected = False
-        time.sleep(1)
+        
+        last_time = time.time()
+        while (time.time() - last_time) < 2:
+           line = conn.readline()
+           if line != None:
+               if line[0] == 'W':
+                   break
+
         success = False
 
         #Verify Information
         print "Verifying..."
-        conn.write("otp show\r\n".encode())
+
+        conn.write("\r\notp show\r\n".encode())
+        last_time = time.time()
         update_block = block
-        while True:
-            line = conn.readline()
-            if first_line_detected == False:
-                if(line[1] == '0'):
-                    count = 0
-                    first_line_detected = True
-                else:
-                    continue
-            if count == block:
-                info = line.split()
-                retry_read = 0
-                if info[2] == information:
-                    print "Verification Successful!!"
-                    success = True
-                    update_block = block + 1
-                    retry = 0
-                else:
-                    if retry < 3:
-                        retry = retry + 1
-                        print "Verification Failed!\n"
-                        print "Retrying writing to block %u: %u" % (block,retry)
-                    else:
-                        print "Write Failed to Block %u!\n" % block
-                        retry = 0
-                        update_block = block + 1
-                        success = False
-            
-            count = count+1
-            if count == 17:
-                break;
+        while (time.time() - last_time) < 5:
+           line = conn.readline()
+           if first_line_detected == False:
+               if(line[1] == '0'):
+                   count = 0
+                   first_line_detected = True
+               else:
+                   continue
+           if count == block:
+               data_block = line.split()
+               retry_read = 0
+               if data_block[2] == information:
+                   print "Verification Successful!!"
+                   success = True
+                   update_block = block + 1
+                   retry = 0
+               else:
+                   if retry < 3:
+                       retry = retry + 1
+                       print "Verification Failed!\n"
+                       print "Retrying writing to block %u: %u" % (block,retry)
+                   else:
+                       print "Write Failed to Block %u!\n" % block
+                       retry = 0
+                       update_block = block + 1
+                       success = False
+
+           count = count+1
+           if first_line_detected == True:
+             if line != None:
+                 if line[0] == 'n':
+                     break
         block = update_block
-        time.sleep(1)
+
         if success == True:
-            cmd = "\r\notp lock "+str(block - 1)+" "+str(block)+"\r\n"
+            cmd = "otp lock "+str(block - 1)+" "+str(block - 1)+"\r\n"
             conn.write(cmd)
             print "Segment " + str(block - 1) + " locked!\n"
-        
+            last_time = time.time()
+            while (time.time() - last_time) < 2:
+                line = conn.readline()
+                if line != None:
+                  if line[0] == 'L' or line[0] == 'F':
+                      break
     conn.close()
-

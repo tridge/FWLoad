@@ -188,7 +188,7 @@ def factory_install(device_barcode):
     accel_data2 = "%f,%f,%f,%f,%f,%f" % (test_sensors.offset[2][0] ,test_sensors.offset[2][1] ,test_sensors.offset[2][2],test_sensors.scale_factor[2][0],test_sensors.scale_factor[2][1],test_sensors.scale_factor[2][2])
     print "Accel :", accel_data0
     print "Accel :", accel_data2
-    if args.otp_write:
+    if True:#args.otp_write:
 	#Manufacturing Info
         p2 = Popen(['python', script_dir + '/otp_program.py', '--port', FMU_DEBUG,'3D Robotics, Inc, \xA9 2015',getMacAddress(),device_barcode,time.strftime("%x"),time.strftime("%X"),'--',str(accel_data0),str(accel_data2)], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         output, err = p2.communicate()
@@ -196,9 +196,9 @@ def factory_install(device_barcode):
 	logger.info(err)
 	time.sleep(1)
         #Display
-        p3 = Popen(['python', script_dir + '/otp_program.py', '--port', FMU_DEBUG,'--only-display',"abc"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        output, err = p3.communicate()
-        logger.info(output)
+        #p3 = Popen(['python', script_dir + '/otp_program.py', '--port', FMU_DEBUG,'--only-display',"abc"], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        #output, err = p3.communicate()
+        #logger.info(output)
 
     colour_text.print_green('''
 ================================================

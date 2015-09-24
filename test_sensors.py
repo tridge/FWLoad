@@ -174,18 +174,18 @@ def check_serial(conn):
 def check_status(conn):
     '''check SYS_STATUS flags'''
     sensor_bits = {
-        'MAG'    : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_MAG,
+        #'MAG'    : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_MAG,
         'ACCEL'  : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_ACCEL,
         'GYRO'   : mavutil.mavlink.MAV_SYS_STATUS_SENSOR_3D_GYRO
         }
     teststatus = conn.testmav.recv_match(type='SYS_STATUS', blocking=True, timeout=5)
     if teststatus is None:
         util.failure("Failed to get SYS_STATUS from test board")
-    print(teststatus)
+    #print(teststatus)
     refstatus = conn.refmav.recv_match(type='SYS_STATUS', blocking=True, timeout=2)
     if refstatus is None:
         util.failure("Failed to get SYS_STATUS from reference board")
-    print(refstatus)
+    #print(refstatus)
     for bit in sensor_bits:
         present = refstatus.onboard_control_sensors_present & sensor_bits[bit]
         enabled = refstatus.onboard_control_sensors_enabled & sensor_bits[bit]
@@ -193,16 +193,16 @@ def check_status(conn):
         logger.info("%s present" % present)
         logger.info("%s enabled" % enabled)
         logger.info("%s health" % health)
-        #if present == 0 or present != enabled or present != health:
-        #    util.failure("Reference board %s failure in SYS_STATUS" % bit)
+        if present == 0 or present != enabled or present != health:
+            util.failure("Reference board %s failure in SYS_STATUS" % bit)
         present = teststatus.onboard_control_sensors_present & sensor_bits[bit]
         enabled = teststatus.onboard_control_sensors_enabled & sensor_bits[bit]
         health  = teststatus.onboard_control_sensors_health & sensor_bits[bit]
         logger.info("%s present" % present)
         logger.info("%s enabled" % enabled)
         logger.info("%s health" % health)
-        #if present == 0 or present != enabled or present != health:
-        #    util.failure("Test board %s failure in SYS_STATUS" % bit)
+        if present == 0 or present != enabled or present != health:
+            util.failure("Test board %s failure in SYS_STATUS" % bit)
         logger.info("%s status OK" % bit)
 
 def check_pwm(conn):

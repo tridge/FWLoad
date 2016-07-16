@@ -178,7 +178,7 @@ def factory_install(device_barcode):
                     break 
         return mac 
 
-    print("Manufacturer info : 3D Robotics, Inc, \xA9 2015")
+    print("Manufacturer info : Hex Technology, \xA9 ProfiCNC 2016")
     print "MAC Address:",getMacAddress() #.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0,8*6,8)][::-1])
 
     colour_text.print_blue('''Barcode is %s''' % device_barcode)
@@ -190,7 +190,7 @@ def factory_install(device_barcode):
     print "Accel :", accel_data2
     if True:#args.otp_write:
 	#Manufacturing Info
-        p2 = Popen(['python', script_dir + '/otp_program.py', '--port', FMU_DEBUG,'3D Robotics, Inc, \xA9 2015',getMacAddress(),device_barcode,time.strftime("%x"),time.strftime("%X"),'--',str(accel_data0),str(accel_data2)], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        p2 = Popen(['python', script_dir + '/otp_program.py', '--port', FMU_DEBUG,'Hex Technology, \xA9 ProfiCNC 2016',getMacAddress(),device_barcode,time.strftime("%x"),time.strftime("%X"),'--',str(accel_data0),str(accel_data2)], stdin=PIPE, stdout=PIPE, stderr=PIPE)
         output, err = p2.communicate()
         logger.info(output)
 	logger.info(err)

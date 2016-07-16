@@ -15,7 +15,7 @@ import serial, sys, time
 
 
 class PixETE(object):
-        def __init__(self, port='/dev/ttyUSB0', delay=0.1, yaw_steps=9600, roll_steps=28800):
+        def __init__(self, port='/dev/ttyUSB0', delay=0.1, yaw_steps=28800, roll_steps=9600):
                 if port is not None:
                         self.ser = serial.Serial(port=port,
                                                  baudrate=9600, bytesize=7, parity='E', stopbits=2,
@@ -40,10 +40,10 @@ class PixETE(object):
                 self.power_cycle_time =  "30 30 35 35"
 
 	   #Addresses:
-                self.ADDRESS={'yaw_pos': '44 30 31 30 30 ', #Command dictionary
-                              'yaw_speed' :'44 30 31 30 32 ',
-                              'roll_pos': '44 30 31 31 30 ',
-                              'roll_speed': '44 30 31 31 32 ',
+                self.ADDRESS={'yaw_pos': '44 30 31 31 30 ', #Command dictionary
+                              'yaw_speed' :'44 30 31 31 32 ',
+                              'roll_pos': '44 30 31 30 30 ',
+                              'roll_speed': '44 30 31 30 32 ',
                               'accel': '44 30 32 30 30', 
                               'run':'44 30 31 30 36 ',
                               'reset':'44 30 31 30 36 ',

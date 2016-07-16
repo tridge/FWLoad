@@ -26,9 +26,10 @@ ROTATIONS = {
 ROTATIONS_ETE = {
 	# Yaw , Pitch
         'level' : Rotation(0, 0, 0, 0),
-        'right' : Rotation(00, 90, -90, 0),
-        'left' : Rotation(180, 90, 90, 0),
+        'right' : Rotation(90, 0, -90, 0),
+        'left' : Rotation(90, 180, 90, 0),
         'up' : Rotation(90, 90, None, 90),
         'down' : Rotation(270, 90, None, -90),
-        'back' : Rotation(180, 180, 180, 0)
+        'back' : Rotation(180, 180, 180, 0),
+        'slant' : Rotation(45, 45, 45, 45)
 }

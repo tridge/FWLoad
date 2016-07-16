@@ -220,10 +220,10 @@ def gyro_integrate(conn):
         util.set_servo(conn.refmav, PITCH_CHANNEL, ROTATIONS['level'].chan2+200)
     if ETE == 1:
         ete = PixETE()
-        ete.position(180, 45)
+        ete.position(45, 180)
         time.sleep(1)
         ete.rollspeed(4000)
-        ete.position(0, 45)
+        ete.position(45, 0)
     logger.info("Starting gyro motion")    
     start_time = time.time()
     ref_tstart = None
@@ -260,7 +260,7 @@ def gyro_integrate(conn):
     logger.debug("Gyro test sum2: %s" % test_sum[1])
     logger.debug("Gyro test sum3: %s" % test_sum[2])
     ete.yawspeed(5000)
-    ete.rollspeed(10000)
+    ete.rollspeed(5000)
     ete.position(0, 0)
     wait_quiescent(conn.refmav)
     for idx in range(3):
@@ -375,7 +375,7 @@ class Rotation(object):
 
 ROTATIONS = {
 ''')
-        for r in ['level', 'right', 'left', 'up', 'down', 'back']:
+        for r in ['level', 'right', 'left', 'up', 'down', 'back', 'slant']:
             roll = ROTATIONS[r].roll
             if roll is None:
                 roll = 'None'

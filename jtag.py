@@ -47,6 +47,22 @@ def load_firmware(device, firmware, mcu_id, run=False):
     except Exception as ex:
         util.show_error('Loading firmware %s' % firmware, ex, log)        
 
+
+def load_firmware_USB(device, firmware):
+    '''load a given firmware via USB'''
+    cmd = "%s --port %s %s" % (PX_UPLOADER, device, firmware)
+    logger.info("Loading firmware %s via USB" % firmware)
+    log = StringIO()
+    try:
+        gdb = pexpect.spawn(cmd, logfile=log, timeout=20)
+        gdb.expect("Found board")
+        gdb.expect("Erase")
+        gdb.expect("Program")
+        gdb.expect("Verify")
+        gdb.expect("Rebooting")
+    except Exception as ex:
+        util.show_error('Loading firmware %s' % firmware, ex, log)        
+        
 def erase_firmware(device, mcu_id):
     '''erase a firmware'''
     cmd = GDB
@@ -121,8 +137,8 @@ def load_all_firmwares(retries=3):
             #load_firmware(IO_JTAG, FW_IO, CPUID_IO)
             load_firmware(IO_JTAG, BL_IO, CPUID_IO)
 
-            load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU)
-            load_firmware(FMU_JTAG, FW_FMU, CPUID_FMU)
+            load_firmware(FMU_JTAG, BL_FMU, CPUID_FMU, run=True)
+            load_firmware_USB(USB_DEV_FMU_BL, FW_FMU_PX4)
         except Exception as ex:
             logger.error("error loading firmwares %s" % ex)
             continue

@@ -7,6 +7,7 @@ from math import *
 import os, sys
 
 GDB="/home/testjig/bin/arm-none-eabi-gdb-4.6"
+PX_UPLOADER="/home/testjig/bin/px_uploader.py"
 
 #Use ETE motion system. Set to 1 to enable 0 to disable.
 ETE=1
@@ -22,6 +23,7 @@ FW_IO="FW/px4io.elf"
 BL_IO="FW/px4io_bl.elf"
 
 FW_FMU="FW/firmware-test.elf"
+FW_FMU_PX4="FW/firmware-test.px4"
 #FW_FMU="FW/Copter34rc1.elf"
 BL_FMU="FW/px4fmuv2_bl.elf"
 
@@ -32,6 +34,7 @@ CPUID_FMU=["STM32F4xx"]
 
 USB_DEV_TEST="/dev/serial/by-id/usb-3D_Robotics_PX4_FMU_v2.x_0-if00"
 USB_DEV_REFERENCE="/dev/serial/by-id/usb-3D_Robotics_PH_REFERENCE_0-if00"
+USB_DEV_FMU_BL="/dev/serial/by-id/usb-3D_Robotics_PX4_BL_FMU_v2.x_0-if00"
 
 # there must be exactly one FTDI device
 FTDI_POWER="/dev/serial/by-id/usb-FTDI_T*"
